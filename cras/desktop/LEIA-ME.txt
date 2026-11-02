@@ -1,0 +1,33 @@
+CRAS — Curva de Retenção de Água no Solo (versão desktop)
+==========================================================
+
+COMO ABRIR
+1. É preciso ter o Python instalado (python.org). Na instalação, marque
+   "Add python.exe to PATH".
+2. Dê dois cliques em "Executar_CRAS.bat".
+   Na primeira vez ele instala as bibliotecas (NumPy, SciPy, Matplotlib,
+   pandas e openpyxl), o que leva alguns minutos e precisa de internet.
+   Nas próximas vezes o programa abre direto.
+
+AVISO DO WINDOWS (SMARTSCREEN)
+Ao abrir o CRAS.exe pela primeira vez, o Windows pode mostrar "O Windows
+protegeu o computador". Isso acontece porque o programa não tem assinatura
+digital paga. Clique em "Mais informações" e depois em "Executar assim mesmo".
+
+GERAR UM .EXE (OPCIONAL)
+Dê dois cliques em "Gerar_executavel.bat". Ao final, o arquivo
+dist\CRAS.exe abre o programa sem precisar do Python, e pode ser copiado
+para outros computadores com Windows.
+
+ARQUIVOS DE DADOS
+.csv, .txt ou .xlsx com duas colunas: sucção (kPa) e teor de umidade
+(cm³/cm³ ou %). Cabeçalho é opcional.
+
+MÉTODOS
+- Ajuste: scipy.optimize.curve_fit, algoritmo Trust Region Reflective (TRF),
+  com limites físicos e 3 ou 4 estimativas iniciais.
+- Erro padrão: Cov = s²·(JᵀJ)⁻¹; p-valor pelo teste t (N − p graus de liberdade).
+- Indicadores: R², R² ajustado, RMSE, MAE e AICc; qualificação pela média das
+  posições.
+- Inversão: analítica (Gardner e van Genuchten) e método de Brent
+  (scipy.optimize.brentq) para Fredlund e Xing.

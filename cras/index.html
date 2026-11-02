@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CRAS — Curva de Retenção de Água no Solo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: faixa institucional escura no topo, apresentação em duas colunas
+   (texto + "como usar") e, abaixo, a ferramenta com painel lateral e resultados. */
+:root{
+  /* cor */
+  --surface:#f4f6f8; --panel:#ffffff; --border:#dfe4e9; --border-strong:#c6ced6;
+  --ink:#15202b; --ink-2:#44515e; --ink-3:#6d7a87;
+  --accent:#1F4E79; --accent-soft:#eaf1f8; --accent-ink:#ffffff;
+  --band:#10283f; --band-ink:#e9f0f7; --band-ink-2:#9fb3c8; --band-line:#22405e;
+  --c1:#C1442A; --c2:#1F5FA8; --c3:#1B7A3D;
+  --grid:#e6eaee; --grid-minor:#f0f3f5;
+  --warn-bg:#fff8e8; --warn-border:#e8d9a8; --warn-ink:#6b5310;
+  --ok-bg:#eef7f0; --ok-ink:#1B7A3D;
+  /* tipografia */
+  --f-display:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body:"Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --raio:10px;
+  --gutter-l:max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r:max(16px, env(safe-area-inset-right, 0px));
+}
+html[data-mode="dark"]{
+  --surface:#13181d; --panel:#1b2229; --border:#2b343d; --border-strong:#3e4954;
+  --ink:#e7ecf1; --ink-2:#b2bdc8; --ink-3:#83909c;
+  --accent:#86b6e3; --accent-soft:#1f2d3b; --accent-ink:#0d1b28;
+  --band:#0b1824; --band-ink:#e7eef5; --band-ink-2:#8fa5ba; --band-line:#1d3247;
+  --c1:#E8674A; --c2:#4E90DC; --c3:#38A85F;
+  --grid:#28313a; --grid-minor:#20272e;
+  --warn-bg:#302a17; --warn-border:#5c5027; --warn-ink:#e0cd93;
+  --ok-bg:#1d2c22; --ok-ink:#38A85F;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0; background:var(--surface); color:var(--ink);
+  font:16px/1.55 var(--f-body);
+  -webkit-font-smoothing:antialiased;
+}
+.largura{max-width:1320px; margin:0 auto; padding-left:var(--gutter-l); padding-right:var(--gutter-r)}
+
+/* ---------- faixa institucional ---------- */
+.topo{background:var(--band); color:var(--band-ink); border-bottom:1px solid var(--band-line)}
+.topo .largura{display:flex; align-items:center; gap:16px; padding-block:12px; flex-wrap:wrap}
+.marca-cras{display:flex; align-items:center; gap:12px; color:inherit; text-decoration:none; flex:1; min-width:0}
+.marca-cras svg{width:38px; height:38px; flex:none}
+.marca-cras .sigla{font:600 20px/1 var(--f-display); letter-spacing:.06em}
+.marca-cras .nome{display:block; font-size:12.5px; color:var(--band-ink-2); margin-top:3px; letter-spacing:.01em}
+.instituicao{font-size:13px; color:var(--band-ink-2); text-align:right; line-height:1.35}
+.instituicao b{color:var(--band-ink); font-weight:600}
+.modo{
+  border:1px solid var(--band-line); background:transparent; color:var(--band-ink);
+  border-radius:999px; padding:7px 14px; cursor:pointer; font:500 13px var(--f-body); white-space:nowrap; width:auto;
+}
+@media (max-width:640px){
+  .instituicao{order:3; flex-basis:100%; text-align:left; padding-top:10px; border-top:1px solid var(--band-line)}
+  .numeros dt{font-size:24px}
+  .numeros dd{font-size:12.5px}
+}
+.modo:hover{background:var(--band-line); color:var(--band-ink); border-color:var(--band-ink-2)}
+
+/* ---------- apresentação ---------- */
+.apresentacao{border-bottom:1px solid var(--border); background:var(--panel)}
+.apresentacao .largura{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:48px; padding-block:44px 40px; align-items:start}
+@media (max-width:900px){.apresentacao .largura{grid-template-columns:1fr; gap:28px; padding-block:30px 28px}}
+.sobretitulo{font-size:12px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin:0 0 14px}
+.apresentacao h1{
+  font:600 clamp(28px,4vw,42px)/1.12 var(--f-display); letter-spacing:-.01em;
+  color:var(--ink); margin:0; text-wrap:balance; max-width:26ch;
+}
+.lide{font-size:17.5px; color:var(--ink-2); margin:16px 0 0; max-width:62ch}
+.acoes{display:flex; gap:10px; flex-wrap:wrap; margin-top:24px}
+.acoes a{
+  display:inline-flex; align-items:center; gap:8px; text-decoration:none;
+  border-radius:8px; padding:11px 18px; font-weight:600; font-size:15px;
+  border:1px solid var(--border-strong); color:var(--ink); background:var(--panel);
+}
+.acoes a:hover{border-color:var(--accent); color:var(--accent)}
+.acoes a.principal{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.acoes a.principal:hover{filter:brightness(1.1); color:var(--accent-ink)}
+.acoes a:focus-visible, .modo:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.numeros{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px 24px; max-width:620px; margin:30px 0 0; padding:20px 0 0; border-top:1px solid var(--border)}
+.numeros div{min-width:0}
+.numeros dt{font:600 28px/1 var(--f-display); color:var(--accent); font-variant-numeric:tabular-nums}
+.numeros dd{margin:6px 0 0; font-size:13.5px; color:var(--ink-3); max-width:20ch}
+
+.passos{background:var(--surface); border:1px solid var(--border); border-radius:var(--raio); padding:22px 24px}
+.passos h2{margin:0 0 4px; font:600 18px/1.3 var(--f-display); color:var(--ink); letter-spacing:0; text-transform:none}
+.passos > p{margin:0 0 16px; font-size:14px; color:var(--ink-3)}
+.passos ol{list-style:none; margin:0; padding:0; display:grid; gap:16px; counter-reset:passo}
+.passos li{display:grid; grid-template-columns:30px 1fr; gap:12px; counter-increment:passo}
+.passos li::before{
+  content:counter(passo); width:30px; height:30px; border-radius:50%;
+  display:grid; place-items:center; font:600 14px var(--f-display);
+  background:var(--accent-soft); color:var(--accent); border:1px solid var(--border-strong);
+}
+.passos li b{display:block; font-size:15px; color:var(--ink)}
+.passos li span{display:block; font-size:14px; line-height:1.5; color:var(--ink-2); margin-top:2px}
+
+/* ---------- ferramenta ---------- */
+.rotulo-secao{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; padding-block:30px 0}
+.rotulo-secao h2{font:600 22px/1.2 var(--f-display); color:var(--ink); margin:0; letter-spacing:0; text-transform:none}
+.rotulo-secao p{margin:0; font-size:13.5px; color:var(--ink-3)}
+main.largura{display:grid; grid-template-columns:350px minmax(0,1fr); gap:20px; padding-block:16px 44px; align-items:start}
+@media (max-width:1080px){main.largura{grid-template-columns:minmax(0,1fr)}}
+main.largura > *{min-width:0}
+
+.card{background:var(--panel); border:1px solid var(--border); border-radius:var(--raio); padding:20px}
+.card + .card{margin-top:16px}
+h2{margin:0 0 12px; font-size:12px; letter-spacing:.10em; text-transform:uppercase; color:var(--accent)}
+.card h2{display:flex; align-items:center; gap:10px}
+.card h2 .num{
+  width:22px; height:22px; border-radius:50%; display:inline-grid; place-items:center;
+  background:var(--accent); color:var(--accent-ink); font:600 12px var(--f-display); letter-spacing:0;
+}
+h3{margin:22px 0 8px; font-size:14px; color:var(--ink-2); font-weight:600}
+label{display:block; font-size:13.5px; color:var(--ink-2); margin:12px 0 5px}
+select,textarea,input[type=text],input[type=number]{
+  width:100%; padding:9px 11px; border:1px solid var(--border-strong); border-radius:8px;
+  background:var(--surface); color:var(--ink); font:inherit; font-size:14.5px;
+}
+textarea{font-family:var(--f-mono); font-size:13px; resize:vertical; min-height:130px; white-space:pre}
+select:focus,textarea:focus,input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
+button{
+  border:1px solid var(--border-strong); background:var(--panel); color:var(--ink);
+  border-radius:8px; padding:9px 13px; font:inherit; font-size:14px; font-weight:500; cursor:pointer; width:100%;
+}
+button:hover{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+button.primaria{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; padding:12px; font-size:15px}
+button.primaria:hover{filter:brightness(1.1); color:var(--accent-ink)}
+.linha{display:flex; gap:8px; margin-top:8px}
+.linha button{flex:1}
+
+.modelos{display:flex; flex-direction:column; gap:12px; margin-top:6px}
+.mod{display:flex; align-items:center; gap:9px; font-size:14.5px; cursor:pointer; color:var(--ink)}
+.mod input{width:16px; height:16px; accent-color:var(--accent); cursor:pointer; flex:none}
+.swatch{width:22px; height:3px; border-radius:2px; flex:none}
+
+.aviso{background:var(--warn-bg); border:1px solid var(--warn-border); color:var(--warn-ink);
+  border-radius:8px; padding:10px 12px; font-size:13.5px; margin-top:12px}
+.aviso ul{margin:6px 0 0; padding-left:18px}
+.ok{background:var(--ok-bg); border:1px solid var(--border); color:var(--ok-ink);
+  border-radius:8px; padding:10px 12px; font-size:13.5px; margin-top:12px}
+
+.abas{display:flex; gap:2px; border-bottom:1px solid var(--border); margin-bottom:18px; overflow-x:auto}
+.aba{
+  border:none; background:none; width:auto; padding:10px 15px; font-size:14.5px; cursor:pointer;
+  color:var(--ink-3); border-bottom:2px solid transparent; border-radius:0; white-space:nowrap; flex:none;
+}
+.aba:hover{background:none; color:var(--accent); border-color:transparent}
+.aba[aria-selected="true"]{color:var(--accent); border-bottom-color:var(--accent); font-weight:600}
+.painel[hidden]{display:none}
+
+figure{margin:0}
+figcaption{font-size:13px; color:var(--ink-3); margin-top:10px}
+svg{display:block; width:100%; height:auto; overflow:visible}
+.gridline{stroke:var(--grid); stroke-width:1}
+.gridline.minor{stroke:var(--grid-minor)}
+.eixo{stroke:var(--border-strong); stroke-width:1}
+.tick{font-size:11px; fill:var(--ink-3); font-family:var(--f-body)}
+.rotulo-eixo{font-size:12.5px; fill:var(--ink-2); font-family:var(--f-body)}
+.ponto{fill:var(--panel); stroke:var(--ink); stroke-width:1.6}
+.curva{fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+.rotulo-direto{font-size:12px; font-weight:600; font-family:var(--f-body); paint-order:stroke; stroke:var(--panel); stroke-width:3.5px; stroke-linejoin:round}
+.cruz{stroke:var(--ink-3); stroke-width:1; stroke-dasharray:3 3; pointer-events:none}
+
+.legenda{display:flex; gap:18px; flex-wrap:wrap; margin:14px 0 0; font-size:13.5px; color:var(--ink-2)}
+.legenda span{display:flex; align-items:center; gap:7px}
+.legenda .marca{width:20px; height:0; border-top-width:2.5px; border-top-style:solid; flex:none}
+
+table{width:100%; border-collapse:collapse; font-size:14px; font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px; text-align:right; border-bottom:1px solid var(--border)}
+th{font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:600; white-space:nowrap}
+th:first-child,td:first-child{text-align:left; white-space:nowrap}
+th{max-width:150px; white-space:normal}
+tbody tr:hover{background:var(--accent-soft)}
+td.destaque{font-weight:700; color:var(--accent)}
+.passo{position:relative; margin:0 0 6px; padding:2px 0 16px 46px; border-left:2px solid var(--border); margin-left:14px}
+.passo:last-child{border-left-color:transparent}
+.passo h3{margin:14px 0 8px; font-size:17px; display:flex; align-items:center}
+.passo h3 .num{position:absolute; left:-16px; width:30px; height:30px; border-radius:50%; background:var(--accent); color:var(--accent-ink); font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center}
+.passo p,.passo ul{font-size:14.5px; color:var(--ink-2); max-width:90ch; margin:6px 0}
+.eqn{background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:8px 0 12px; font-family:var(--f-display); font-size:16px; line-height:1.9; overflow-x:auto}
+.eqn b{color:var(--accent)}
+.modrot{font-weight:700; font-size:14px; margin:14px 0 2px}
+details.etapa{border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin:12px 0; background:var(--panel)}
+details.etapa>summary{cursor:pointer; font-weight:600; color:var(--ink)}
+.formula{font-family:var(--f-mono); font-size:12.5px; color:var(--ink-2); text-align:left}
+td.formula,th.formula{white-space:normal}
+table.calc th{text-transform:none; letter-spacing:0; font-size:13px}
+.nota{font-size:13px; color:var(--ink-3); margin-top:10px; max-width:90ch}
+.rolagem{overflow-x:auto}
+
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px}
+.kpi{border:1px solid var(--border); border-radius:10px; padding:13px 15px; background:var(--surface)}
+.kpi .r{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3)}
+.kpi .v{font-size:22px; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px; color:var(--ink-3); margin-top:2px}
+
+#dica{
+  position:fixed; pointer-events:none; opacity:0; transition:opacity .1s;
+  background:var(--panel); border:1px solid var(--border-strong); border-radius:8px;
+  padding:9px 11px; font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,.13); z-index:50;
+  font-variant-numeric:tabular-nums; min-width:170px;
+}
+#dica b{display:block; margin-bottom:5px; font-size:12.5px; color:var(--ink-2)}
+#dica .l{display:flex; justify-content:space-between; gap:14px; align-items:center}
+#dica .l i{width:14px; height:0; border-top-width:2.5px; border-top-style:solid; display:inline-block; margin-right:6px}
+code{font-family:var(--f-mono); font-size:12.5px; background:var(--accent-soft); padding:1px 5px; border-radius:4px}
+.eq{font:italic 14px/1.4 var(--f-display); color:var(--ink-2); margin:3px 0 0 31px}
+
+/* ---------- rodapé ---------- */
+footer{border-top:1px solid var(--border); background:var(--panel); color:var(--ink-2); font-size:14px}
+footer .largura{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:24px 40px; padding-block:30px 22px}
+footer h4{margin:0 0 8px; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:600}
+footer p{margin:0; line-height:1.5}
+footer .refs{margin:0; padding:0; list-style:none; display:grid; gap:3px}
+footer .base{border-top:1px solid var(--border); padding-block:14px 26px; font-size:12.5px; color:var(--ink-3); display:block}
+</style>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAIT0lEQVR4Xn1XXYxdVRX+9s8599y5P/PPdIa2oCIDlBaipYkpRsQY+wAmEArxCYwP9UF9KsILiVEfSMEX0xg0JkLUmBQbLYlaHmwIQaUFBfszlLbT3+n833tn7sy99/ztvc3a+5zOtM7Mvtm5956z9/rWWt9aa6/N4AYzxoAxZn5y9NSWXZ/bvLfki4eYUX1aG56t+b/BsidmvQUAOGdaQ9TbifrgxPjEmy/t2X7NGMMJC4BhMIZ+McaY/suZmR9uHao+P9AdDEiC3UgyAJW9F7kmG2iaamB+MZy/MtM88Ni2oVesEoCRhwDSRh09O/f6ztGBZ9MIiDqpikiYMeuIZki1Rn/gA9CohSkk30hjZhgDBsvBwHB/cODoJ7PbGGPPHTLG6X7k5PUXHt4+8nJ7WcVxqjzOSbm1B2MOvK8g0UiX7aJeWUYtSuFxDqJyvaG1Nr4nkmJJ+P86Of3C4w8MH2CvHj2/5ZH7h8+M9BdL7TBlG4Jnbi8KjnJB4aWT/4E2Bj/d8QW0YomO0paOjZgjJboCaSZr7dY/zk/dx0c3V54eGixVwkgbxjgjA9abOpM8UGR47cJZ1KIItU6Ig2fH7DMatGYjGYRBWEMD5cqd/eVneMmXuziDIUvW3LgqFmNtsKUkcWTyCv5dq6HIOYpC4MTcHN68fAFbyxJxFpn5vrVkEhaxVQn8XZxx3ksZqG02rPGxEoBIaWwqehhbquOtiWuoSA+J0nZWpYdD4xfxcX0WwyXPrqU9tHetj8WirOeslxsYtqHbKOKNQZcUMDzGr8fPIVWauITWxn0bDY9xHDx9GokO7VraQ3s3opPS3xaZ3F3aJtXKtM+NgdIGwyWB31w6Z4vP7sFBazm9I3cqpSEZw3Srg9fGTtu1qSZKSYmbZZL81bRy56p1JoBIG4yUfByvT+OjWh1PbbkTVekj0coBkBeMQaI1Kp7EsWvX8c71q9hc9hEpp8B68uklX239jcDJtCTLKeUUi/G7yxexZ3gzlpMEb1+fgACz7x0NpIi21ARc4FenzyBSRAW3a26Vu9oLjoI8YFZ5gkaiDW4vSRyeuISq8HBXpWLBlaYgy/l3HrBUaAPJGaaW2/jtJ2MYoazIcvdmL7iMs2fFzdrlMevAewoeJqMlvDszg6/ctgkn63VMttuWb2tZpoSlIftPXqh4Ht4av4SLi3X0By5bHM6K/BzXeuDWLKClBDAQcByZuIIez0eP7+O/9RokVUObAVkWWCXy6Z6ReWGS4vdjY+gPeHZo3Vxn8qLmgjDjPOeGrK/6EjPxsi0y91S70YgizIchOFjGec49CdaA1mBaAVpBpwoVKfDulQlcXqhZTyZZQN6UBRSE9sHqLADs0dlXEHh/bhqdNEWJM8y2lpGmiQWigHOgDjA1QJt5aPIATVZAk/tY5gGmlMDhyxPoK3Jr1K0ZQdjkUZerriGxyhDHKdf4YHERgVfEsXrTltjU64JSigiCAkPMJVIA5WgJd7RmMdKeQ0+8BF8lUIxhxvjofDqPZNu98ISwBQu2ODllaMgbWmWakGWFQgGsdglfP3YQRhSw6JcwX+xFrdiHmt+NFvetF3o7DYw2LuLexcvoj5uQhtRyBtH5T7+T2gnI2qOQ1VHEYeiMzL2eeyAPQjCXWsJj4LWrGJ76FLJYAdMp9WwwjCMWHhIu7f9ARZBGI+YeOlzAMOtQN0gBxqGjJvTCNGTfKEJtwIULxjwIJRFxozSuekGKdJgHSdYy6ayi6m4MhErsf3pPHSO3Esm9mWlWAdLA2IDUFCs5zauCnrBXKHAIrgClAO/qoV7NBRpxlxUPgnHiaHkm2FrL7HpmW7NMFGMQ0rOySGYebzeC3lGQF4mcPI5OrMD6tgJ+GWHYgRCCulsLsFazRkEVxynaYYJOlCBOyGoKaoOenm4ri2TS2Zed7lkQakh7+lnX0+HpLImjCMmmAdQLt2Ps+N9Q6u61BaPgC/ieRMETEIJbkDhJ0eokaIexA85qLBcC7eYCtj/yAOLuAcTTbfiSMiGroIRJHmCOwZU+jooDgNm2wbZvfgen3vkrwiiBVgpLrZX0WT2IKesd8pKLPnDOERQ8fHHvPsx2jJW52nqXhtxwrfWCw7d3E9cuCY76QgfB/buw+5nvotWYQyEowJMCnuRuipVJLTmBW0U4g+/5WKrN4kt798G/7yE0Gh0rM2/7bHTaVkM3eJQm7yttg3ulJBtACIbzUx3s+PaLePAbezE9cc1WPDBhQ4yoyicZTUmQaoblUOHChXHc8+iTdi/JIFk21fNmxNB5AhZFyXE5X1s+VO5a/FF3tVSKwthQW+4SwnaqODOX4OHnfw5V7MHbb/zCFqCuchm+71sFaFBHFMUxWstL4Fxgz3M/wFe//2O7lxKIcacAraa2vBD4rNFoNucbc4eshMMfT+6/6+7hV5YaYayU9hgR6u5rth5QCzs6FKDx0Xt47w+/xLkP/4lmo4Y0SawCnueh2tePu3fuxpe/tQ/dD+7GuZnQGkCUWG7pvqCNEYInld7Av3hhav8TO0Z+xuh69DRj6k+nZl//zGcHn201U6SpzRnaaG2k0EtSjf7eCoa6ADU3icWr59Guz1oFuvpuQ/fWz0MMjmCmBdQWlmycWC+6zLIESOmLUlXi0vjMG0/s2OSuZgTi1jD955MzL1a7K/uLpWK/vTnmJ0ZWWFJl7NkeBAzFACh4LheiBOiEQBgaezOSwgHnw9YzA3RandrC4uKrT+4Yfpkup+52nA1rLWPm4N/P3LFlZNNTUvCdRus+rfWN63lehLTS9n5ILrbKcQbJBXh2Tc7rvE00zjXjvJ4q/eG1yek/fu9r267kWPT+f9zdpIlh4R+lAAAAAElFTkSuQmCC">
+</head>
+<body>
+
+<!-- ============ FAIXA INSTITUCIONAL ============ -->
+<div class="topo">
+  <div class="largura">
+    <a class="marca-cras" href="#inicio" aria-label="CRAS, início da página">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="0.5" y="0.5" width="39" height="39" rx="9" fill="none" stroke="currentColor" stroke-opacity=".35"/>
+        <path d="M7 11 C 15 11, 17 12, 20 19 S 26 29, 33 29" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="10" cy="11" r="2.2" fill="currentColor"/>
+        <circle cx="20" cy="19" r="2.2" fill="currentColor"/>
+        <circle cx="30" cy="28.6" r="2.2" fill="currentColor"/>
+      </svg>
+      <span><span class="sigla">CRAS</span><span class="nome">Curva de Retenção de Água no Solo</span></span>
+    </a>
+    <button class="modo" type="button" onclick="alternarModo()">Modo escuro</button>
+  </div>
+</div>
+
+<!-- ============ APRESENTAÇÃO ============ -->
+<section class="apresentacao" id="inicio">
+  <div class="largura">
+    <div>
+      <h1>Ajuste da curva de retenção de água no solo e estimativa da sucção matricial</h1>
+      <p class="lide">Ajuste os modelos de Gardner (1958), van Genuchten (1980) e Fredlund e Xing (1994)
+        aos seus pares de sucção e teor de umidade, estime a sucção a partir de um teor de umidade
+        e compare o desempenho dos modelos por R², R² ajustado, RMSE, MAE, AIC e p-valor.</p>
+      <div class="acoes">
+        <a class="principal" href="#ferramenta">Começar análise</a>
+        <a href="#card-modelos">Ver os modelos</a>
+      </div>
+      <dl class="numeros">
+        <div><dt>3</dt><dd>modelos de ajuste da curva</dd></div>
+        <div><dt>6</dt><dd>indicadores estatísticos de desempenho</dd></div>
+        <div><dt>12</dt><dd>solos de referência de Carsel e Parrish (1988)</dd></div>
+      </dl>
+    </div>
+
+    <aside class="passos" aria-labelledby="como-usar">
+      <h2 id="como-usar">Como usar</h2>
+      <p>Os cálculos são feitos no próprio navegador. Nenhum dado é enviado para a internet.</p>
+      <ol>
+        <li><div><b>Informe os dados</b><span>Digite ou cole as colunas de sucção (kPa) e teor de umidade (cm³/cm³), abra um arquivo .csv ou .txt, ou carregue um solo de referência.</span></div></li>
+        <li><div><b>Escolha os modelos</b><span>Marque os modelos que deseja ajustar. As equações aparecem ao lado de cada um.</span></div></li>
+        <li><div><b>Ajuste e compare</b><span>Veja o gráfico, os parâmetros, as estatísticas e a sucção estimada. Exporte os resultados em CSV e o gráfico em PNG ou SVG.</span></div></li>
+      </ol>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ FERRAMENTA ============ -->
+<div class="largura rotulo-secao" id="ferramenta">
+  <h2>Análise</h2>
+  <p id="estado-exemplo">Exemplo carregado: solo franco arenoso de referência. Troque pelos seus dados no painel ao lado.</p>
+</div>
+
+<main class="largura">
+  <!-- ============ PAINEL LATERAL ============ -->
+  <div>
+    <section class="card">
+      <h2><span class="num">1</span> Dados experimentais</h2>
+
+      <label for="classe">Solo de referência (Carsel e Parrish, 1988)</label>
+      <select id="classe"></select>
+
+      <div class="linha">
+        <button onclick="carregarCatalogo()">Carregar solo</button>
+      </div>
+
+      <label for="dados">Ou informe os seus dados — ψ (kPa) e θ (cm³/cm³)</label>
+      <textarea id="dados" spellcheck="false"></textarea>
+      <div class="linha">
+        <button onclick="usarTexto()">Usar estes dados</button>
+        <button onclick="document.getElementById('arquivo').click()">Abrir arquivo</button>
+      </div>
+      <input type="file" id="arquivo" accept=".csv,.txt,.tsv" hidden onchange="abrirArquivo(event)">
+      <div id="avisos"></div>
+    </section>
+
+    <section class="card" id="card-modelos">
+      <h2><span class="num">2</span> Modelos a ajustar</h2>
+      <div class="modelos" id="modelos"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">3</span> Análise</h2>
+      <button class="primaria" onclick="executar()">Ajustar modelos</button>
+      <div class="linha">
+        <button onclick="baixarCSV()">Exportar CSV</button>
+        <button onclick="baixarPNG()">Gráfico PNG</button>
+        <button onclick="baixarSVG()">Gráfico SVG</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ RESULTADOS ============ -->
+  <section class="card">
+    <div class="abas" role="tablist">
+      <button class="aba" role="tab" aria-selected="true"  onclick="abrirAba(0,this)">Gráfico</button>
+      <button class="aba" role="tab" aria-selected="false" onclick="abrirAba(1,this)">Parâmetros</button>
+      <button class="aba" role="tab" aria-selected="false" onclick="abrirAba(2,this)">Estatísticas</button>
+      <button class="aba" role="tab" aria-selected="false" onclick="abrirAba(3,this)">Sucção estimada</button>
+      <button class="aba" role="tab" aria-selected="false" onclick="abrirAba(4,this)">Tabela de dados</button>
+      <button class="aba" role="tab" aria-selected="false" onclick="abrirAba(5,this)">Solos de referência</button>
+      <button class="aba" role="tab" aria-selected="false" onclick="abrirAba(6,this)">Processo de cálculo</button>
+    </div>
+
+    <div class="painel" id="p0">
+      <figure>
+        <svg id="gr" viewBox="0 0 880 470" role="img" aria-label="Teor de umidade volumétrico em função da sucção matricial, em escala logarítmica, com os dados experimentais e as curvas ajustadas de cada modelo."></svg>
+        <div class="legenda" id="legenda"></div>
+        <figcaption id="legenda-nota">Passe o cursor sobre o gráfico para ler os valores. A escala de sucção é logarítmica. Os mesmos números estão na aba “Tabela de dados”.</figcaption>
+      </figure>
+      <svg id="gr2" viewBox="0 0 880 200" role="img" aria-label="Resíduos do ajuste de cada modelo, ou seja, a diferença entre o teor de umidade observado e o calculado por cada modelo" style="margin-top:22px"></svg>
+    </div>
+
+    <div class="painel" id="p1" hidden><div class="rolagem"><table id="t-par"></table></div>
+      <p class="nota">O erro padrão vem da matriz de covariância do ajuste. O <b>p-valor</b> é do teste t bicaudal (H₀: o parâmetro é igual a zero; t = valor ÷ erro padrão; n − p graus de liberdade). p &lt; 0,05 (em destaque) indica que o parâmetro é estatisticamente diferente de zero; p alto indica parâmetro mal determinado pelos dados. Com ajuste praticamente perfeito o erro padrão tende a zero e o p-valor aparece como &lt; 0.0001.</p></div>
+
+    <div class="painel" id="p2" hidden>
+      <div class="kpis" id="kpis"></div>
+      <div id="alerta-gl"></div>
+      <div class="rolagem"><table id="t-est"></table></div>
+      <h3>Qualificação dos modelos</h3>
+      <div class="rolagem"><table id="t-rank"></table></div>
+      <p class="nota">Cada modelo recebe uma posição (1º = melhor) em R² ajustado, RMSE, MAE e AIC. A <b>média das posições</b> define a colocação: até 1,50 = muito bom; até 2,25 = bom; acima disso = regular.</p>
+      <h3>Índices derivados da curva ajustada</h3>
+      <div class="rolagem"><table id="t-ind"></table></div>
+      <p class="nota">O <b>R²</b> sempre melhora quando se acrescentam parâmetros; por isso o <b>AIC</b> aparece ao lado — ele penaliza a complexidade e, entre ajustes de qualidade parecida, aponta o modelo mais parcimonioso. Menor AIC é melhor. Água disponível: diferença de θ entre 10 kPa e 1500 kPa.</p>
+    </div>
+
+    <div class="painel" id="p3" hidden>
+      <label for="theta-alvo" style="margin-top:0">Teor de umidade θ (cm³/cm³) para estimar a sucção</label>
+      <div class="linha" style="max-width:420px">
+        <input type="number" id="theta-alvo" value="0.25" step="0.005" min="0" max="1">
+        <button onclick="estimarPontual()" style="max-width:150px">Calcular ψ</button>
+      </div>
+      <div id="succao-pontual"></div>
+      <h3>Tabela completa</h3>
+      <div class="rolagem"><table id="t-suc"></table></div>
+      <p class="nota">Gardner e van Genuchten possuem inversa analítica. Fredlund e Xing é invertido numericamente pelo método da bisseção, porque o fator corretivo C(ψ) impede a solução em forma fechada. Um traço indica teor de umidade fora da faixa que o modelo consegue representar.</p>
+    </div>
+
+    <div class="painel" id="p4" hidden><div class="rolagem"><table id="t-dados"></table></div></div>
+    <div class="painel" id="p5" hidden>
+      <div class="rolagem"><table id="t-solos"></table></div>
+      <p class="nota">Os 12 solos de referência seguem a classificação textural do USDA, com os parâmetros de van Genuchten médios de Carsel e Parrish (1988), os mesmos usados no HYDRUS-1D. O solo carregado no painel 1 aparece em destaque. A qualificação dos <i>modelos</i> de ajuste (ranking) está na aba Estatísticas.</p>
+    </div>
+
+    <div class="painel" id="p6" hidden>
+      <details class="etapa" open><summary>Fluxograma do processo de cálculo</summary>
+      <div style="max-width:660px;margin:12px auto 0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 895" width="640" height="895" font-family="Source Sans 3, Arial, sans-serif" font-size="15">
+<defs><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
+<rect x="40" y="14" width="560" height="57" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="38" text-anchor="middle" font-weight="700" fill="var(--ink)">1. Entrada dos dados</text>
+<text x="320.0" y="57" text-anchor="middle" fill="var(--ink)" font-size="13.5">pares sucção ψ (kPa) e umidade θ (cm³/cm³)</text>
+<line x1="320.0" y1="71" x2="320.0" y2="99" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#sa)"/>
+<rect x="40" y="101" width="560" height="76" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="125" text-anchor="middle" font-weight="700" fill="var(--ink)">2. Verificação e tratamento</text>
+<text x="320.0" y="144" text-anchor="middle" fill="var(--ink)" font-size="13.5">ψ > 0 · 0 ≤ θ ≤ 1 · unidade (% → cm³/cm³)</text>
+<text x="320.0" y="163" text-anchor="middle" fill="var(--ink)" font-size="13.5">ordenação crescente de ψ · mínimo de 5 pontos</text>
+<line x1="320.0" y1="177" x2="320.0" y2="205" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#sa)"/>
+<rect x="40" y="207" width="560" height="76" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="231" text-anchor="middle" font-weight="700" fill="var(--ink)">3. Limites e chutes iniciais</text>
+<text x="320.0" y="250" text-anchor="middle" fill="var(--ink)" font-size="13.5">θr, θs, α, n, m… dentro de faixas físicas</text>
+<text x="320.0" y="269" text-anchor="middle" fill="var(--ink)" font-size="13.5">vários pontos de partida por modelo</text>
+<line x1="320.0" y1="283" x2="320.0" y2="311" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#sa)"/>
+<rect x="40" y="313" width="560" height="76" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="337" text-anchor="middle" font-weight="700" fill="var(--ink)">4. Regressão não linear</text>
+<text x="320.0" y="356" text-anchor="middle" fill="var(--ink)" font-size="13.5">minimiza SQR = Σ(θobs − θcalc)² (Nelder-Mead)</text>
+<text x="320.0" y="375" text-anchor="middle" fill="var(--ink)" font-size="13.5">com reinícios e transformação logística</text>
+<line x1="320.0" y1="389" x2="320.0" y2="417" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#sa)"/>
+<rect x="40" y="419" width="560" height="57" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="443" text-anchor="middle" font-weight="700" fill="var(--ink)">5. Parâmetros ajustados</text>
+<text x="320.0" y="462" text-anchor="middle" fill="var(--ink)" font-size="13.5">valor de cada parâmetro de cada modelo</text>
+<line x1="320.0" y1="476" x2="320.0" y2="504" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#sa)"/>
+<rect x="40" y="506" width="560" height="76" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="530" text-anchor="middle" font-weight="700" fill="var(--ink)">6. Erro padrão e p-valor</text>
+<text x="320.0" y="549" text-anchor="middle" fill="var(--ink)" font-size="13.5">jacobiano → covariância → t = valor ÷ erro padrão</text>
+<text x="320.0" y="568" text-anchor="middle" fill="var(--ink)" font-size="13.5">p-valor bicaudal, n − p graus de liberdade</text>
+<line x1="320.0" y1="582" x2="320.0" y2="610" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#sa)"/>
+<rect x="40" y="612" width="560" height="76" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="636" text-anchor="middle" font-weight="700" fill="var(--ink)">7. Indicadores de desempenho</text>
+<text x="320.0" y="655" text-anchor="middle" fill="var(--ink)" font-size="13.5">R², R² ajustado, RMSE, MAE, AIC</text>
+<text x="320.0" y="674" text-anchor="middle" fill="var(--ink)" font-size="13.5">comparados entre os modelos</text>
+<line x1="320.0" y1="688" x2="320.0" y2="716" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#sa)"/>
+<rect x="40" y="718" width="560" height="57" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="742" text-anchor="middle" font-weight="700" fill="var(--ink)">8. Qualificação dos modelos</text>
+<text x="320.0" y="761" text-anchor="middle" fill="var(--ink)" font-size="13.5">posição em cada indicador → média das posições</text>
+<line x1="320.0" y1="775" x2="320.0" y2="803" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#sa)"/>
+<rect x="40" y="805" width="560" height="76" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="320.0" y="829" text-anchor="middle" font-weight="700" fill="var(--ink)">9. Sucção matricial estimada</text>
+<text x="320.0" y="848" text-anchor="middle" fill="var(--ink)" font-size="13.5">θ → ψ: inversa analítica (Gardner, van Genuchten)</text>
+<text x="320.0" y="867" text-anchor="middle" fill="var(--ink)" font-size="13.5">bisseção (Fredlund e Xing)</text>
+</svg></div>
+      </details>
+      <p class="nota">Abaixo estão as contas reais feitas com os dados que estão carregados agora, em sequência, do passo 1 ao 10. Cada passo traz a equação, a substituição com os seus números e o resultado. Os valores mudam a cada análise.</p>
+      <div id="calc-dinamico"></div>
+    </div>
+
+  </section>
+</main>
+
+<div id="dica" role="status" aria-live="polite"></div>
+
+<!-- ============ RODAPÉ ============ -->
+<footer>
+  <div class="largura">
+    <div>
+      <h4>Autoria</h4>
+      <p>Mariane Rocha Lima<br>Bacharelado em Engenharia Civil<br>UNIFIP · Centro Universitário de Patos (PB)</p>
+    </div>
+    <div>
+      <h4>Orientação</h4>
+      <p>Prof. Me. Vinicius da Silva Vieira<br>Coorientação: Prof. Dr. Pabllo da Silva Araújo</p>
+    </div>
+    <div>
+      <h4>Modelos e dados de referência</h4>
+      <ul class="refs">
+        <li>Gardner (1958)</li>
+        <li>van Genuchten (1980)</li>
+        <li>Fredlund e Xing (1994)</li>
+        <li>Carsel e Parrish (1988)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="largura base">Versão para navegador do aplicativo desenvolvido em Python. O ajuste usa o método simplex de Nelder e Mead (1965).</div>
+</footer>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   MODELOS MATEMÁTICOS — equações 9, 10 e 11 do TCC
+   ========================================================================== */
+
+const PSI_SECO = 1e6;
+
+function fatorCorretivo(psi, psiR){
+  return 1 - Math.log1p(psi/psiR) / Math.log1p(1e6/psiR);
+}
+
+const MODELOS = {
+  gardner: {
+    nome:"Gardner (1958)", curto:"Gardner", cor:"var(--c1)", varCor:"--c1",
+    traco:"7 4", eq:"θ = θr + (θs − θr)·e^(−a·ψ)",
+    pars:["θr","θs","a"], unid:["cm³/cm³","cm³/cm³","1/kPa"],
+    signif:["teor de umidade residual","teor de umidade na saturação",
+            "parâmetro de ajuste relacionado à sucção"],
+    f:(psi,[tr,ts,a])=> tr + (ts-tr)*Math.exp(Math.max(-700,Math.min(700,-a*psi))),
+    inversa:(th,[tr,ts,a])=>{
+      if(!(th>tr && th<=ts)) return NaN;
+      const s=(th-tr)/(ts-tr);
+      if(s<1e-6) return NaN;          // a curva já colapsou sobre θr
+      return -Math.log(s)/a;
+    },
+    entradaAr:([,,a])=>1/a
+  },
+  van_genuchten: {
+    nome:"van Genuchten (1980)", curto:"van Genuchten", cor:"var(--c2)", varCor:"--c2",
+    traco:"", eq:"θ(ψ) = θr + (θs − θr) / [1 + (α·ψ)ⁿ]^m",
+    pars:["θr","θs","α","n","m"], unid:["cm³/cm³","cm³/cm³","1/kPa","—","—"],
+    signif:["teor de umidade residual","teor de umidade na saturação",
+            "parâmetro relacionado à pressão de entrada de ar",
+            "parâmetro relacionado à distribuição de poros","parâmetro de ajuste da curva"],
+    f:(psi,[tr,ts,al,n,m])=> tr + (ts-tr)/Math.pow(1+Math.pow(Math.max(al*psi,1e-12),n),m),
+    inversa:(th,[tr,ts,al,n,m])=>{
+      if(!(th>tr && th<=ts)) return NaN;
+      const se=(th-tr)/(ts-tr), t=Math.pow(se,-1/m)-1;
+      return t<0 ? NaN : Math.pow(t,1/n)/al;
+    },
+    entradaAr:([,,al])=>1/al
+  },
+  fredlund_xing: {
+    nome:"Fredlund e Xing (1994)", curto:"Fredlund e Xing", cor:"var(--c3)", varCor:"--c3",
+    traco:"2 3", eq:"θ(ψ) = C(ψ)·θs / {ln[e + (ψ/a)ⁿ]}^m",
+    pars:["θs","a","n","m"], unid:["cm³/cm³","kPa","—","—"],
+    signif:["teor de umidade na saturação",
+            "parâmetro relacionado à sucção de entrada de ar",
+            "parâmetro relacionado à distribuição dos poros","parâmetro de ajuste da curva"],
+    f:(psi,[ts,a,n,m])=>{
+      const r=Math.pow(Math.max(psi/a,1e-12),n);
+      return ts/Math.pow(Math.log(Math.E+r),m) * fatorCorretivo(psi,PSI_SECO);
+    },
+    inversa:function(th,p){                     // bisseção: sem inversa fechada
+      const g=x=>this.f(x,p)-th;
+      let lo=1e-4, hi=PSI_SECO;
+      if(g(lo)*g(hi)>0) return NaN;
+      for(let i=0;i<200;i++){
+        const md=Math.sqrt(lo*hi);              // bisseção em escala logarítmica
+        (g(lo)*g(md)<=0) ? hi=md : lo=md;
+      }
+      return Math.sqrt(lo*hi);
+    },
+    entradaAr:([,a])=>a
+  }
+};
+const ORDEM = ["gardner","van_genuchten","fredlund_xing"];
+
+/* ==========================================================================
+   OTIMIZAÇÃO — Nelder-Mead com limites e múltiplos pontos de partida
+   ========================================================================== */
+
+function nelderMead(objetivo, inicio, opcoes={}){
+  const n=inicio.length;
+  const maxIter=opcoes.maxIter||4000, tol=opcoes.tol||1e-12;
+  let simplex=[inicio.slice()];
+  for(let i=0;i<n;i++){
+    const v=inicio.slice();
+    v[i] = Math.abs(v[i])>1e-8 ? v[i]*1.08 : 0.001;
+    simplex.push(v);
+  }
+  let valores=simplex.map(objetivo);
+  const alfa=1, gama=2, rho=0.5, sigma=0.5;
+
+  for(let it=0; it<maxIter; it++){
+    const ordem=valores.map((v,i)=>i).sort((a,b)=>valores[a]-valores[b]);
+    simplex=ordem.map(i=>simplex[i]); valores=ordem.map(i=>valores[i]);
+    if(Math.abs(valores[n]-valores[0]) < tol*(Math.abs(valores[0])+tol)) break;
+
+    const centro=new Array(n).fill(0);
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++) centro[j]+=simplex[i][j]/n;
+
+    const refl=centro.map((c,j)=>c+alfa*(c-simplex[n][j]));
+    const vr=objetivo(refl);
+
+    if(vr<valores[0]){
+      const exp=centro.map((c,j)=>c+gama*(refl[j]-c));
+      const ve=objetivo(exp);
+      if(ve<vr){simplex[n]=exp; valores[n]=ve;} else {simplex[n]=refl; valores[n]=vr;}
+    } else if(vr<valores[n-1]){
+      simplex[n]=refl; valores[n]=vr;
+    } else {
+      const contr=centro.map((c,j)=>c+rho*(simplex[n][j]-c));
+      const vc=objetivo(contr);
+      if(vc<valores[n]){simplex[n]=contr; valores[n]=vc;}
+      else{
+        for(let i=1;i<=n;i++){
+          simplex[i]=simplex[i].map((x,j)=>simplex[0][j]+sigma*(x-simplex[0][j]));
+          valores[i]=objetivo(simplex[i]);
+        }
+      }
+    }
+  }
+  const melhor=valores.indexOf(Math.min(...valores));
+  return {x:simplex[melhor], valor:valores[melhor]};
+}
+
+// Os parâmetros são otimizados sem restrição e mapeados para dentro dos
+// limites por uma transformação logística, o que evita valores impossíveis
+// (por exemplo n negativo) sem precisar de otimizador com restrições.
+const paraLivre  = (v,lo,hi)=> Math.log((v-lo)/(hi-v));
+const paraLimite = (u,lo,hi)=> lo+(hi-lo)/(1+Math.exp(-Math.max(-40,Math.min(40,u))));
+
+function limitesEChutes(chave, psi, theta){
+  const thMax=Math.max(...theta), thMin=Math.min(...theta);
+  const amp=Math.max(thMax-thMin,1e-4);
+  const alvo=thMin+amp/2;
+  let idx=0, dif=Infinity;
+  theta.forEach((t,i)=>{const d=Math.abs(t-alvo); if(d<dif){dif=d; idx=i;}});
+  const meio=Math.max(psi[idx]>0?psi[idx]:psi[Math.floor(psi.length/2)],1e-3);
+
+  if(chave==="gardner") return {
+    lo:[0, thMax*0.5, 1e-8], hi:[thMax+amp, thMax*1.5, 1e4],
+    chutes:[[thMin*0.9,thMax,1/meio],[1e-6,thMax,0.693/meio],[thMin*0.5,thMax*1.02,0.1/meio]]
+  };
+  if(chave==="van_genuchten"){
+    const c=[];
+    [1.5,2.5,1.2,5.0].forEach(n0=>c.push([Math.max(thMin*0.8,1e-6),thMax,1/meio,n0,1-1/n0]));
+    return {lo:[0,thMax*0.5,1e-6,1.01,0.01], hi:[thMax,thMax*1.5,1e3,30,10], chutes:c};
+  }
+  const c=[];
+  [[2,1],[1,0.5],[4,0.8],[1.5,2]].forEach(([n0,m0])=>c.push([thMax,meio,n0,m0]));
+  return {lo:[thMax*0.5,1e-4,0.1,0.01], hi:[thMax*1.5,1e6,50,20], chutes:c};
+}
+
+function ajustar(chave, psi, theta){
+  const M=MODELOS[chave], np=M.pars.length;
+  const r={chave, nome:M.nome, eq:M.eq, convergiu:false, mensagem:"", nPar:np};
+  if(psi.length<5){ r.mensagem=`são necessários pelo menos 5 pontos (foram informados ${psi.length})`; return r; }
+  if(np>=psi.length){ r.mensagem=`o modelo tem ${np} parâmetros para apenas ${psi.length} pontos`; return r; }
+
+  const {lo,hi,chutes}=limitesEChutes(chave,psi,theta);
+  const objetivo=u=>{
+    const p=u.map((v,i)=>paraLimite(v,lo[i],hi[i]));
+    let s=0;
+    for(let i=0;i<psi.length;i++){
+      const c=M.f(psi[i],p);
+      if(!isFinite(c)) return 1e12;
+      s+=(theta[i]-c)**2;
+    }
+    return s;
+  };
+
+  let melhorP=null, melhorS=Infinity, partidas=[], idxMelhor=-1;
+  for(const chute of chutes){
+    const u0=chute.map((v,i)=>paraLivre(Math.min(Math.max(v,lo[i]+1e-12),hi[i]-1e-12),lo[i],hi[i]));
+    let atual=u0, sChute=Infinity;
+    for(let volta=0; volta<3; volta++){          // reinícios reduzem mínimos locais
+      const res=nelderMead(objetivo,atual);
+      atual=res.x;
+      if(res.valor<sChute) sChute=res.valor;
+      if(res.valor<melhorS){ melhorS=res.valor; melhorP=res.x.slice(); idxMelhor=partidas.length; }
+    }
+    partidas.push({inicio:chute.slice(), sse:sChute});
+  }
+  if(!melhorP || !isFinite(melhorS)){ r.mensagem="a otimização não convergiu"; return r; }
+
+  r.p = melhorP.map((v,i)=>paraLimite(v,lo[i],hi[i]));
+  const calc = psi.map(x=>M.f(x,r.p));
+  Object.assign(r, estatisticas(theta,calc,np));
+  r.calc = calc;
+  r.erros = errosPadrao(chave, psi, theta, r.p, melhorS);
+  const glRes = psi.length - np;
+  r.tstat = r.p.map((v,i)=> r.erros[i]>0 ? v/r.erros[i] : NaN);
+  r.pPar  = r.tstat.map(t=>pValorT(t,glRes));          // H0: parâmetro = 0
+  const mediaObs = theta.reduce((a,b)=>a+b,0)/theta.length;
+  const ssTot = theta.reduce((a,b)=>a+(b-mediaObs)**2,0);
+  r.sse=melhorS; r.sqt=ssTot; r.media=mediaObs; r.lo=lo; r.hi=hi; r.partidas=partidas; r.idxMelhor=idxMelhor;
+  r.convergiu = true;
+  return r;
+}
+
+// Erro padrão por diferenças finitas sobre o jacobiano (aproximação de Gauss-Newton)
+function errosPadrao(chave, psi, theta, p, sse){
+  const M=MODELOS[chave], n=psi.length, np=p.length;
+  if(n<=np) return p.map(()=>NaN);
+  const J=[];
+  for(let i=0;i<n;i++){
+    const linha=[];
+    for(let j=0;j<np;j++){
+      const h=Math.max(Math.abs(p[j])*1e-6,1e-10);
+      const pm=p.slice(), pp=p.slice();
+      pm[j]-=h; pp[j]+=h;
+      linha.push((M.f(psi[i],pp)-M.f(psi[i],pm))/(2*h));
+    }
+    J.push(linha);
+  }
+  const A=Array.from({length:np},(_,a)=>Array.from({length:np},(_,b)=>{
+    let s=0; for(let i=0;i<n;i++) s+=J[i][a]*J[i][b]; return s;
+  }));
+  const inv=inverter(A);
+  if(!inv) return p.map(()=>NaN);
+  const s2=sse/(n-np);
+  return inv.map((linha,i)=>{const v=s2*linha[i]; return v>0?Math.sqrt(v):NaN;});
+}
+
+function inverter(A){                              // Gauss-Jordan com pivotamento
+  const n=A.length;
+  const M=A.map((linha,i)=>[...linha,...Array.from({length:n},(_,j)=>i===j?1:0)]);
+  for(let c=0;c<n;c++){
+    let piv=c;
+    for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[piv][c])) piv=r;
+    if(Math.abs(M[piv][c])<1e-14) return null;
+    [M[c],M[piv]]=[M[piv],M[c]];
+    const d=M[c][c];
+    for(let j=0;j<2*n;j++) M[c][j]/=d;
+    for(let r=0;r<n;r++){
+      if(r===c) continue;
+      const f=M[r][c];
+      if(!f) continue;
+      for(let j=0;j<2*n;j++) M[r][j]-=f*M[c][j];
+    }
+  }
+  return M.map(linha=>linha.slice(n));
+}
+
+
+/* ==========================================================================
+   P-VALOR — distribuições t de Student e F de Snedecor
+   (beta incompleta regularizada, Numerical Recipes §6.4)
+   ========================================================================== */
+function lgamma(x){
+  const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  let y=x, t=x+5.5; t-=(x+0.5)*Math.log(t);
+  let ser=1.000000000190015;
+  for(let j=0;j<6;j++) ser+=c[j]/++y;
+  return -t+Math.log(2.5066282746310005*ser/x);
+}
+function betacf(a,b,x){
+  const TINY=1e-300; let qab=a+b, qap=a+1, qam=a-1, c=1, d=1-qab*x/qap;
+  if(Math.abs(d)<TINY) d=TINY; d=1/d; let h=d;
+  for(let m=1;m<=300;m++){
+    const m2=2*m; let aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d; if(Math.abs(d)<TINY) d=TINY; c=1+aa/c; if(Math.abs(c)<TINY) c=TINY; d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d; if(Math.abs(d)<TINY) d=TINY; c=1+aa/c; if(Math.abs(c)<TINY) c=TINY; d=1/d;
+    const del=d*c; h*=del; if(Math.abs(del-1)<3e-14) break;
+  }
+  return h;
+}
+function betai(a,b,x){
+  if(x<=0) return 0; if(x>=1) return 1;
+  const bt=Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  return x<(a+1)/(a+b+2) ? bt*betacf(a,b,x)/a : 1-bt*betacf(b,a,1-x)/b;
+}
+// p-valor bicaudal do teste t com gl graus de liberdade
+function pValorT(t,gl){
+  if(!isFinite(t)||gl<=0) return NaN;
+  return betai(gl/2,0.5,gl/(gl+t*t));
+}
+const fmtP=p=> !isFinite(p) ? "—" : p<1e-4 ? "< 0.0001" : p.toFixed(4);
+
+/* ==========================================================================
+   INDICADORES ESTATÍSTICOS — seção 5.3.5 do TCC
+   ========================================================================== */
+
+function estatisticas(obs, calc, np){
+  const n=obs.length;
+  const media=obs.reduce((a,b)=>a+b,0)/n;
+  let ssRes=0, ssTot=0, somaAbs=0;
+  for(let i=0;i<n;i++){
+    ssRes+=(obs[i]-calc[i])**2;
+    ssTot+=(obs[i]-media)**2;
+    somaAbs+=Math.abs(obs[i]-calc[i]);
+  }
+  const r2 = ssTot===0 ? NaN : 1-ssRes/ssTot;
+  const den = n-np-1;
+  let aic = n*Math.log(Math.max(ssRes,1e-300)/n) + 2*np;
+  if(den>0) aic += (2*np*(np+1))/den;
+  return {
+    r2,
+    r2aj: den>0 ? 1-(1-r2)*(n-1)/den : NaN,
+    rmse: Math.sqrt(ssRes/n),
+    mae: somaAbs/n,
+    aic
+  };
+}
+
+/* ==========================================================================
+   CATÁLOGO DE SOLOS — Carsel e Parrish (1988), o mesmo do HYDRUS-1D
+   ========================================================================== */
+
+const CM_KPA=0.0980665;
+const CARSEL={
+  "Areia":[0.045,0.43,0.145,2.68], "Areia franca":[0.057,0.41,0.124,2.28],
+  "Franco arenoso":[0.065,0.41,0.075,1.89], "Franco":[0.078,0.43,0.036,1.56],
+  "Silte":[0.034,0.46,0.016,1.37], "Franco siltoso":[0.067,0.45,0.020,1.41],
+  "Franco argiloarenoso":[0.100,0.39,0.059,1.48], "Franco argiloso":[0.095,0.41,0.019,1.31],
+  "Franco argilossiltoso":[0.089,0.43,0.010,1.23], "Argila arenosa":[0.100,0.38,0.027,1.23],
+  "Argila siltosa":[0.070,0.36,0.005,1.09], "Argila":[0.068,0.38,0.008,1.09]
+};
+
+function parametrosCarsel(classe){
+  const [tr,ts,alCm,n]=CARSEL[classe];
+  return [tr,ts,alCm/CM_KPA,n,1-1/n];
+}
+
+// Gerador reprodutível, para que o mesmo solo produza sempre os mesmos pontos
+function geradorAleatorio(semente){
+  let s=semente>>>0;
+  return ()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; };
+}
+
+function gerarConjunto(classe, ruido){
+  const p=parametrosCarsel(classe);
+  const psiB=1/p[2];
+  const ini=Math.max(psiB/50,0.01), fim=Math.min(Math.max(psiB*3000,1500),1e5);
+  const N=16, psi=[], theta=[];
+  const rnd=geradorAleatorio(42);
+  for(let i=0;i<N;i++){
+    const x=Math.pow(10, Math.log10(ini)+(Math.log10(fim)-Math.log10(ini))*i/(N-1));
+    psi.push(x);
+    let t=MODELOS.van_genuchten.f(x,p);
+    if(ruido>0){                                   // Box-Muller
+      const u1=Math.max(rnd(),1e-12), u2=rnd();
+      t += ruido*Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+    }
+    theta.push(Math.min(Math.max(t,0),1));
+  }
+  const avisos = ruido>0
+    ? [`conjunto sintético com ruído de ${ruido.toFixed(4)} cm³/cm³ somado ao teor de umidade.`]
+    : [];
+  return {psi, theta, nome:`${classe} (Carsel e Parrish, 1988)`, avisos, descartados:0};
+}
+
+/* ==========================================================================
+   LEITURA E TRATAMENTO DOS DADOS — seção 5.2 do TCC
+   ========================================================================== */
+
+function lerTexto(texto, nome="Dados informados"){
+  const avisos=[]; let brutos=0;
+  const pares=[];
+  for(const linhaBruta of texto.trim().split(/\r?\n/)){
+    const linha=linhaBruta.trim();
+    if(!linha || linha.startsWith("#")) continue;
+    const partes = /[;\t]/.test(linha) ? linha.split(/[;\t]/)
+                 : (linha.split(",").length===2 && !/\d,\d/.test(linha)) ? linha.split(",")
+                 : linha.split(/\s+/);
+    if(partes.length<2) continue;
+    brutos++;
+    const a=parseFloat(partes[0].replace(",",".")), b=parseFloat(partes[1].replace(",","."));
+    if(!isFinite(a)||!isFinite(b)) continue;       // provavelmente é o cabeçalho
+    pares.push([a,b]);
+  }
+  if(!pares.length) throw new Error("nenhum par numérico foi reconhecido. Informe duas colunas: sucção em kPa e teor de umidade em cm³/cm³.");
+
+  const incompletos=brutos-pares.length;
+  if(incompletos>0) avisos.push(`${incompletos} linha(s) sem par numérico válido foram ignoradas.`);
+
+  let psi=pares.map(p=>p[0]), theta=pares.map(p=>p[1]);
+
+  // sucção precisa ser positiva
+  let manter=psi.map(v=>v>0);
+  const negativos=manter.filter(v=>!v).length;
+  if(negativos) avisos.push(`${negativos} ponto(s) com sucção menor ou igual a zero foram excluídos.`);
+  psi=psi.filter((_,i)=>manter[i]); theta=theta.filter((_,i)=>manter[i]);
+
+  // consistência da unidade do teor de umidade
+  const thMax=Math.max(...theta);
+  if(thMax>1.5 && thMax<=100){
+    theta=theta.map(v=>v/100);
+    avisos.push("os valores de umidade estavam em porcentagem e foram divididos por 100 para virar cm³/cm³.");
+  } else if(thMax>100){
+    avisos.push("há valores de umidade acima de 100 — verifique a unidade da coluna.");
+  }
+  manter=theta.map(v=>v>=0 && v<=1);
+  const foraFaixa=manter.filter(v=>!v).length;
+  if(foraFaixa) avisos.push(`${foraFaixa} ponto(s) com umidade fora da faixa de 0 a 1 cm³/cm³ foram excluídos.`);
+  psi=psi.filter((_,i)=>manter[i]); theta=theta.filter((_,i)=>manter[i]);
+
+  // ordenação crescente da sucção
+  const ordem=psi.map((_,i)=>i).sort((a,b)=>psi[a]-psi[b]);
+  psi=ordem.map(i=>psi[i]); theta=ordem.map(i=>theta[i]);
+
+  let crescente=false;
+  for(let i=1;i<theta.length;i++) if(theta[i]-theta[i-1]>1e-6) crescente=true;
+  if(crescente) avisos.push("a umidade não decresce de forma monotônica com a sucção — confira se os dados são de um único ramo (secagem ou umedecimento).");
+
+  if(psi.length<5) avisos.push(`o conjunto tem apenas ${psi.length} ponto(s). A metodologia exige no mínimo 5 para o ajuste dos modelos de três ou mais parâmetros.`);
+
+  return {psi, theta, nome, avisos, descartados:brutos-psi.length};
+}
+
+/* ==========================================================================
+   ESTADO E INTERFACE
+   ========================================================================== */
+
+let conjunto=null, resultados={}, selecionados=new Set(ORDEM);
+
+const $ = s=>document.querySelector(s);
+const corDe = chave=>getComputedStyle(document.documentElement)
+                      .getPropertyValue(MODELOS[chave].varCor).trim();
+
+function iniciar(){
+  const sel=$("#classe");
+  Object.keys(CARSEL).forEach(c=>{
+    const o=document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o);
+  });
+  sel.value="Franco arenoso";
+
+  const cx=$("#modelos");
+  ORDEM.forEach(chave=>{
+    const M=MODELOS[chave];
+    const wrap=document.createElement("div");
+    const rot=document.createElement("label");
+    rot.className="mod"; rot.style.margin="0";
+    rot.innerHTML=`<input type="checkbox" checked data-m="${chave}">
+                   <span class="swatch" style="background:${M.cor}"></span>
+                   <span>${M.nome}</span>`;
+    rot.querySelector("input").addEventListener("change",e=>{
+      e.target.checked ? selecionados.add(chave) : selecionados.delete(chave);
+    });
+    const eq=document.createElement("div");
+    eq.className="eq"; eq.textContent=M.eq;
+    wrap.appendChild(rot); wrap.appendChild(eq);
+    cx.appendChild(wrap);
+  });
+
+  $("#dados").value =
+    "# sucção (kPa)\tumidade (cm³/cm³)\n" +
+    "1\t0.452\n6\t0.425\n10\t0.402\n33\t0.338\n100\t0.281\n300\t0.238\n1000\t0.205\n1500\t0.196";
+
+  carregarCatalogo();
+  tabelaSolos();
+}
+
+function alternarModo(){
+  const html=document.documentElement;
+  const escuro = html.dataset.mode==="dark";
+  html.dataset.mode = escuro ? "light" : "dark";
+  document.querySelector(".modo").textContent = escuro ? "Modo escuro" : "Modo claro";
+  document.querySelectorAll(".swatch").forEach((s,i)=>{
+    s.style.background = MODELOS[ORDEM[i]].cor;
+  });
+  if(Object.keys(resultados).length) desenhar(); else desenharVazio();
+}
+
+function abrirAba(i, botao){
+  document.querySelectorAll(".aba").forEach(a=>a.setAttribute("aria-selected","false"));
+  botao.setAttribute("aria-selected","true");
+  for(let k=0;k<7;k++) $("#p"+k).hidden = (k!==i);
+}
+
+function mostrarAvisos(){
+  const cx=$("#avisos");
+  if(!conjunto){ cx.innerHTML=""; return; }
+  atualizarEstado();
+  if(conjunto.avisos.length){
+    cx.innerHTML=`<div class="aviso"><b>${conjunto.nome}</b> — ${conjunto.psi.length} ponto(s)
+      <ul>${conjunto.avisos.map(a=>`<li>${a}</li>`).join("")}</ul></div>`;
+  } else {
+    cx.innerHTML=`<div class="ok"><b>${conjunto.nome}</b> — ${conjunto.psi.length} ponto(s).
+      Os dados passaram em todas as verificações de consistência.</div>`;
+  }
+}
+
+function carregarCatalogo(){
+  conjunto=gerarConjunto($("#classe").value, 0);
+  resultados={}; mostrarAvisos(); tabelaDados(); desenharVazio(); limparResultados(); tabelaSolos();
+}
+
+function usarTexto(){
+  try{
+    conjunto=lerTexto($("#dados").value);
+    resultados={}; mostrarAvisos(); tabelaDados(); desenharVazio(); limparResultados();
+  }catch(e){
+    $("#avisos").innerHTML=`<div class="aviso"><b>Erro nos dados:</b> ${e.message}</div>`;
+  }
+}
+
+function abrirArquivo(evento){
+  const arq=evento.target.files[0];
+  if(!arq) return;
+  const leitor=new FileReader();
+  leitor.onload=e=>{
+    try{
+      conjunto=lerTexto(e.target.result, arq.name);
+      $("#dados").value=e.target.result;
+      resultados={}; mostrarAvisos(); tabelaDados(); desenharVazio(); limparResultados();
+    }catch(erro){
+      $("#avisos").innerHTML=`<div class="aviso"><b>Erro ao ler ${arq.name}:</b> ${erro.message}</div>`;
+    }
+  };
+  leitor.readAsText(arq);
+  evento.target.value="";
+}
+
+function limparResultados(){
+  ["#t-par","#t-est","#t-ind","#t-suc","#t-rank"].forEach(s=>$(s).innerHTML="");
+  $("#kpis").innerHTML=""; $("#succao-pontual").innerHTML=""; $("#alerta-gl").innerHTML="";
+  $("#gr2").innerHTML=""; $("#legenda").innerHTML=""; processoCalculo();
+}
+
+function executar(){
+  if(!conjunto){ alert("Carregue um conjunto de dados."); return; }
+  if(conjunto.psi.length<5){
+    $("#avisos").innerHTML=`<div class="aviso"><b>Pontos insuficientes:</b>
+      o conjunto tem ${conjunto.psi.length} ponto(s) e são necessários no mínimo 5.</div>`;
+    return;
+  }
+  if(!selecionados.size){ alert("Selecione ao menos um modelo."); return; }
+
+  resultados={};
+  for(const chave of ORDEM){
+    if(selecionados.has(chave)) resultados[chave]=ajustar(chave, conjunto.psi, conjunto.theta);
+  }
+  desenhar(); tabelaParametros(); tabelaEstatisticas(); tabelaSuccao(); tabelaDados(); tabelaSolos(); processoCalculo();
+}
+
+/* ==========================================================================
+   GRÁFICOS
+   ========================================================================== */
+
+const L={e:66, d:104, t:26, b:54}, LARG=880, ALT=470;
+
+function escalas(){
+  const psiMin=Math.max(Math.min(...conjunto.psi)*0.5, 1e-3);
+  const psiMax=Math.max(Math.max(...conjunto.psi)*5, 1500);
+  const convergidos=Object.values(resultados).filter(r=>r.convergiu);
+  let tMin=Math.min(...conjunto.theta), tMax=Math.max(...conjunto.theta);
+  convergidos.forEach(r=>{
+    for(let i=0;i<=60;i++){
+      const x=Math.pow(10, Math.log10(psiMin)+(Math.log10(psiMax)-Math.log10(psiMin))*i/60);
+      const y=MODELOS[r.chave].f(x,r.p);
+      if(isFinite(y)){ tMin=Math.min(tMin,y); tMax=Math.max(tMax,y); }
+    }
+  });
+  const folga=(tMax-tMin)*0.10 || 0.02;
+  tMin=Math.max(0,tMin-folga); tMax=tMax+folga;
+  return {
+    psiMin, psiMax, tMin, tMax,
+    x: v => L.e + (Math.log10(v)-Math.log10(psiMin))/(Math.log10(psiMax)-Math.log10(psiMin))*(LARG-L.e-L.d),
+    y: v => L.t + (tMax-v)/(tMax-tMin)*(ALT-L.t-L.b)
+  };
+}
+
+const svgEl=(tag,attrs={})=>{
+  const el=document.createElementNS("http://www.w3.org/2000/svg",tag);
+  for(const k in attrs) el.setAttribute(k,attrs[k]);
+  return el;
+};
+const fmt=(v,d=4)=> !isFinite(v) ? "—"
+  : (Math.abs(v)>=1e5||(Math.abs(v)<1e-3&&v!==0)) ? v.toExponential(2) : v.toFixed(d);
+
+function desenharVazio(){ resultados={}; desenhar(); }
+
+function desenhar(){
+  const g=$("#gr"); g.innerHTML="";
+  if(!conjunto) return;
+  const s=escalas();
+
+  // ---- grade e eixos ----
+  for(let d=Math.floor(Math.log10(s.psiMin)); d<=Math.ceil(Math.log10(s.psiMax)); d++){
+    for(let k=1;k<10;k++){
+      const v=k*Math.pow(10,d);
+      if(v<s.psiMin||v>s.psiMax) continue;
+      const x=s.x(v);
+      g.appendChild(svgEl("line",{x1:x,y1:L.t,x2:x,y2:ALT-L.b,
+        class:"gridline"+(k===1?"":" minor")}));
+      if(k===1){
+        const t=svgEl("text",{x, y:ALT-L.b+17, class:"tick","text-anchor":"middle"});
+        t.textContent = d>=0&&d<=3 ? String(Math.pow(10,d)) : `10${sobrescrito(d)}`;
+        g.appendChild(t);
+      }
+    }
+  }
+  const passo=intervaloBonito(s.tMin,s.tMax);
+  for(let v=Math.ceil(s.tMin/passo)*passo; v<=s.tMax+1e-9; v+=passo){
+    const y=s.y(v);
+    g.appendChild(svgEl("line",{x1:L.e,y1:y,x2:LARG-L.d,y2:y,class:"gridline"}));
+    const t=svgEl("text",{x:L.e-9, y:y+4, class:"tick","text-anchor":"end"});
+    t.textContent=v.toFixed(2); g.appendChild(t);
+  }
+  g.appendChild(svgEl("line",{x1:L.e,y1:ALT-L.b,x2:LARG-L.d,y2:ALT-L.b,class:"eixo"}));
+  g.appendChild(svgEl("line",{x1:L.e,y1:L.t,x2:L.e,y2:ALT-L.b,class:"eixo"}));
+
+  let r=svgEl("text",{x:(L.e+LARG-L.d)/2, y:ALT-8, class:"rotulo-eixo","text-anchor":"middle"});
+  r.textContent="Sucção matricial, ψ (kPa) — escala logarítmica"; g.appendChild(r);
+  r=svgEl("text",{x:15, y:(L.t+ALT-L.b)/2, class:"rotulo-eixo","text-anchor":"middle",
+                  transform:`rotate(-90 15 ${(L.t+ALT-L.b)/2})`});
+  r.textContent="Teor de umidade volumétrico, θ (cm³/cm³)"; g.appendChild(r);
+
+  // ---- curvas ajustadas ----
+  const convergidos=ORDEM.filter(c=>resultados[c]&&resultados[c].convergiu);
+  convergidos.forEach(chave=>{
+    const M=MODELOS[chave], res=resultados[chave];
+    let d="";
+    for(let i=0;i<=280;i++){
+      const x=Math.pow(10, Math.log10(s.psiMin)+(Math.log10(s.psiMax)-Math.log10(s.psiMin))*i/280);
+      const y=M.f(x,res.p);
+      if(!isFinite(y)) continue;
+      d += (d?"L":"M")+s.x(x).toFixed(2)+" "+s.y(y).toFixed(2)+" ";
+    }
+    const p=svgEl("path",{d, class:"curva", stroke:corDe(chave)});
+    if(M.traco) p.setAttribute("stroke-dasharray",M.traco);
+    g.appendChild(p);
+  });
+
+  // ---- rótulos diretos (encoding secundário, além da cor) ----
+  // Cada rótulo é posto no fim da curva, na margem reservada à direita, e as
+  // alturas são separadas quando duas curvas terminam próximas demais.
+  if(convergidos.length){
+    const xFim=s.psiMax*0.92;
+    const alvos=convergidos.map(chave=>({
+      chave, y:s.y(MODELOS[chave].f(xFim, resultados[chave].p))
+    })).filter(a=>isFinite(a.y)).sort((a,b)=>a.y-b.y);
+
+    const ALTURA_MIN=15;                      // separação mínima entre rótulos
+    for(let i=1;i<alvos.length;i++){
+      if(alvos[i].y-alvos[i-1].y < ALTURA_MIN) alvos[i].y = alvos[i-1].y+ALTURA_MIN;
+    }
+    const limite=ALT-L.b;
+    for(let i=alvos.length-1;i>0;i--){
+      if(alvos[i].y>limite){
+        alvos[i].y=limite;
+        if(alvos[i].y-alvos[i-1].y<ALTURA_MIN) alvos[i-1].y=alvos[i].y-ALTURA_MIN;
+      }
+    }
+    alvos.forEach(({chave,y})=>{
+      const yCurva=s.y(MODELOS[chave].f(xFim, resultados[chave].p));
+      const xCurva=s.x(xFim);
+      // traço-guia ligando a curva ao rótulo deslocado
+      g.appendChild(svgEl("path",{
+        d:`M${xCurva} ${yCurva} L${LARG-L.d+4} ${y}`,
+        fill:"none", stroke:corDe(chave), "stroke-width":1, opacity:.45}));
+      const t=svgEl("text",{x:LARG-L.d+8, y:y+4, class:"rotulo-direto", fill:corDe(chave)});
+      t.textContent=MODELOS[chave].curto; g.appendChild(t);
+    });
+  }
+
+  // ---- pontos experimentais (por último, ficam por cima) ----
+  conjunto.psi.forEach((x,i)=>{
+    g.appendChild(svgEl("circle",{cx:s.x(x), cy:s.y(conjunto.theta[i]), r:4.6, class:"ponto"}));
+  });
+
+  // ---- camada de leitura ----
+  const cruzV=svgEl("line",{class:"cruz", y1:L.t, y2:ALT-L.b, opacity:0});
+  g.appendChild(cruzV);
+  const area=svgEl("rect",{x:L.e, y:L.t, width:LARG-L.e-L.d, height:ALT-L.t-L.b,
+                           fill:"transparent", style:"cursor:crosshair"});
+  g.appendChild(area);
+
+  const dica=$("#dica");
+  area.addEventListener("mousemove", ev=>{
+    const cx=g.getBoundingClientRect();
+    const px=(ev.clientX-cx.left)/cx.width*LARG;
+    const frac=(px-L.e)/(LARG-L.e-L.d);
+    const psi=Math.pow(10, Math.log10(s.psiMin)+(Math.log10(s.psiMax)-Math.log10(s.psiMin))*frac);
+    cruzV.setAttribute("x1",px); cruzV.setAttribute("x2",px); cruzV.setAttribute("opacity",1);
+
+    let html=`<b>ψ = ${fmt(psi,psi<10?2:1)} kPa</b>`;
+    convergidos.forEach(chave=>{
+      const y=MODELOS[chave].f(psi,resultados[chave].p);
+      html+=`<div class="l"><span><i style="border-color:${corDe(chave)}"></i>${MODELOS[chave].curto}</span><span>${fmt(y,4)}</span></div>`;
+    });
+    // ponto experimental próximo
+    let melhor=-1, dif=Infinity;
+    conjunto.psi.forEach((x,i)=>{const d=Math.abs(Math.log10(x)-Math.log10(psi)); if(d<dif){dif=d; melhor=i;}});
+    if(dif<0.05) html+=`<div class="l" style="margin-top:5px;padding-top:5px;border-top:1px solid var(--border)"><span>Medido</span><span>${fmt(conjunto.theta[melhor],4)}</span></div>`;
+
+    dica.innerHTML=html; dica.style.opacity=1;
+    dica.style.left=Math.min(ev.clientX+16, innerWidth-210)+"px";
+    dica.style.top=(ev.clientY-12)+"px";
+  });
+  area.addEventListener("mouseleave", ()=>{ dica.style.opacity=0; cruzV.setAttribute("opacity",0); });
+
+  legenda(convergidos);
+  desenharResiduos(convergidos);
+}
+
+function legenda(convergidos){
+  const cx=$("#legenda");
+  cx.innerHTML = `<span><svg width="16" height="16" style="width:16px;height:16px"><circle cx="8" cy="8" r="4.6" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/></svg> Dados experimentais</span>`
+    + convergidos.map(c=>{
+        const M=MODELOS[c];
+        const estilo = M.traco==="7 4" ? "dashed" : M.traco==="2 3" ? "dotted" : "solid";
+        return `<span><i class="marca" style="border-top-color:${corDe(c)}; border-top-style:${estilo}"></i> ${M.nome} — R² = ${resultados[c].r2.toFixed(4)}</span>`;
+      }).join("");
+}
+
+function desenharResiduos(convergidos){
+  const g=$("#gr2"); g.innerHTML="";
+  if(!convergidos.length) return;
+  const A=200, Lb={e:L.e, d:L.d, t:26, b:48};
+  const s=escalas();
+  let mx=0;
+  convergidos.forEach(c=>conjunto.theta.forEach((t,i)=>{
+    mx=Math.max(mx,Math.abs(t-resultados[c].calc[i]));
+  }));
+  mx=Math.max(mx*1.25,1e-4);
+  const y=v=>Lb.t+(mx-v)/(2*mx)*(A-Lb.t-Lb.b);
+
+  // grade vertical alinhada ao gráfico de cima
+  for(let d=Math.floor(Math.log10(s.psiMin)); d<=Math.ceil(Math.log10(s.psiMax)); d++){
+    const v=Math.pow(10,d);
+    if(v<s.psiMin||v>s.psiMax) continue;
+    const x=s.x(v);
+    g.appendChild(svgEl("line",{x1:x,y1:Lb.t,x2:x,y2:A-Lb.b,class:"gridline"}));
+    const t=svgEl("text",{x, y:A-Lb.b+17, class:"tick","text-anchor":"middle"});
+    t.textContent = d>=0&&d<=3 ? String(v) : `10${sobrescrito(d)}`;
+    g.appendChild(t);
+  }
+
+  [-mx,-mx/2,0,mx/2,mx].forEach(v=>{
+    g.appendChild(svgEl("line",{x1:Lb.e,y1:y(v),x2:LARG-Lb.d,y2:y(v),
+      class:"gridline", stroke:v===0?"var(--border-strong)":"var(--grid)"}));
+    const t=svgEl("text",{x:Lb.e-9,y:y(v)+4,class:"tick","text-anchor":"end"});
+    t.textContent=v.toFixed(3); g.appendChild(t);
+  });
+
+  convergidos.forEach(chave=>{
+    conjunto.psi.forEach((x,i)=>{
+      const c=svgEl("circle",{cx:s.x(x), cy:y(conjunto.theta[i]-resultados[chave].calc[i]),
+        r:4.4, fill:corDe(chave), stroke:"var(--panel)", "stroke-width":2, opacity:.92});
+      const tt=svgEl("title");
+      tt.textContent=`${MODELOS[chave].curto} — ψ = ${fmt(x,2)} kPa, resíduo = ${fmt(conjunto.theta[i]-resultados[chave].calc[i],5)}`;
+      c.appendChild(tt); g.appendChild(c);
+    });
+  });
+
+  let r=svgEl("text",{x:(Lb.e+LARG-Lb.d)/2, y:A-6, class:"rotulo-eixo","text-anchor":"middle"});
+  r.textContent="Sucção matricial, ψ (kPa)"; g.appendChild(r);
+  r=svgEl("text",{x:Lb.e, y:14, class:"rotulo-eixo"});
+  r.textContent="Resíduo: θ observado − θ calculado (cm³/cm³)"; g.appendChild(r);
+}
+
+function intervaloBonito(min,max){
+  const bruto=(max-min)/5;
+  const mag=Math.pow(10,Math.floor(Math.log10(bruto)));
+  const norm=bruto/mag;
+  return (norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+}
+function sobrescrito(n){
+  const mapa={"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","-":"⁻"};
+  return String(n).split("").map(c=>mapa[c]||c).join("");
+}
+
+/* ==========================================================================
+   TABELAS
+   ========================================================================== */
+
+function montarTabela(sel, cabecalho, linhas){
+  const t=$(sel);
+  t.innerHTML = `<thead><tr>${cabecalho.map(h=>`<th>${h}</th>`).join("")}</tr></thead>`
+              + `<tbody>${linhas.map(l=>`<tr>${l.map(c=>
+                  typeof c==="object" ? `<td class="${c.cls||""}">${c.v}</td>` : `<td>${c}</td>`
+                ).join("")}</tr>`).join("")}</tbody>`;
+}
+
+function tabelaParametros(){
+  const linhas=[];
+  ORDEM.filter(c=>resultados[c]).forEach(chave=>{
+    const M=MODELOS[chave], r=resultados[chave];
+    if(!r.convergiu){ linhas.push([M.nome,"—","não convergiu","—","—","—","—",r.mensagem]); return; }
+    M.pars.forEach((nome,i)=>{
+      linhas.push([
+        i===0 ? `<b>${M.nome}</b>` : "", nome, fmt(r.p[i],6),
+        fmt(r.erros[i],5), isFinite(r.tstat[i])?r.tstat[i].toFixed(2):"—",
+        {v:fmtP(r.pPar[i]), cls:r.pPar[i]<0.05?"destaque":""}, M.unid[i], M.signif[i]
+      ]);
+    });
+  });
+  montarTabela("#t-par",
+    ["Modelo","Parâmetro","Valor","Erro padrão","t","p-valor","Unidade","Significado"], linhas);
+}
+
+function tabelaEstatisticas(){
+  const conv=ORDEM.filter(c=>resultados[c]&&resultados[c].convergiu);
+  const melhorR2 = conv.length ? conv.reduce((a,b)=>resultados[a].r2>=resultados[b].r2?a:b) : null;
+  const melhorAIC= conv.length ? conv.reduce((a,b)=>resultados[a].aic<=resultados[b].aic?a:b) : null;
+
+  $("#kpis").innerHTML = !conv.length ? "" : `
+    <div class="kpi"><div class="r">Melhor por R²</div>
+      <div class="v" style="font-size:16px;color:${corDe(melhorR2)}">${MODELOS[melhorR2].curto}</div>
+      <div class="s">R² = ${resultados[melhorR2].r2.toFixed(5)}</div></div>
+    <div class="kpi"><div class="r">Melhor por AIC</div>
+      <div class="v" style="font-size:16px;color:${corDe(melhorAIC)}">${MODELOS[melhorAIC].curto}</div>
+      <div class="s">AIC = ${resultados[melhorAIC].aic.toFixed(2)}</div></div>
+    <div class="kpi"><div class="r">Menor RMSE</div>
+      <div class="v">${Math.min(...conv.map(c=>resultados[c].rmse)).toFixed(5)}</div>
+      <div class="s">cm³/cm³</div></div>
+    <div class="kpi"><div class="r">Pontos usados</div>
+      <div class="v">${conjunto.psi.length}</div>
+      <div class="s">mínimo exigido: 5</div></div>`;
+
+  const apertados = conv.filter(c=>conjunto.psi.length - resultados[c].nPar < 2);
+  $("#alerta-gl").innerHTML = !apertados.length ? "" :
+    `<div class="aviso"><b>Atenção ao interpretar o R&sup2;.</b>
+      Com ${conjunto.psi.length} pontos experimentais,
+      ${apertados.map(c=>`${MODELOS[c].curto} (${resultados[c].nPar} parâmetros)`).join(" e ")}
+      ${apertados.length>1?"ficam":"fica"} com menos de 2 graus de liberdade.
+      Nessa situação a curva praticamente interpola os pontos: um R&sup2; próximo de 1 indica
+      superajuste, não qualidade de representação. Use o AIC para comparar e, se possível,
+      acrescente pontos experimentais.</div>`;
+
+  montarTabela("#t-est",
+    ["Modelo","N.º de parâmetros","R²","R² ajustado","RMSE (cm³/cm³)","MAE (cm³/cm³)","AIC"],
+    ORDEM.filter(c=>resultados[c]).map(chave=>{
+      const r=resultados[chave];
+      if(!r.convergiu) return [MODELOS[chave].nome,"—","não convergiu","—","—","—","—"];
+      const gl = conjunto.psi.length - r.nPar;
+      const alerta = gl<2 ? ' <span title="graus de liberdade insuficientes" style="color:var(--warn-ink)">&#9888;</span>' : "";
+      return [MODELOS[chave].nome + alerta, r.nPar,
+        {v:r.r2.toFixed(5), cls:chave===melhorR2?"destaque":""},
+        isFinite(r.r2aj)?r.r2aj.toFixed(5):"—", r.rmse.toFixed(5), r.mae.toFixed(5),
+        {v:r.aic.toFixed(2), cls:chave===melhorAIC?"destaque":""}];
+    }));
+
+  tabelaRanking(conv);
+
+  montarTabela("#t-ind",
+    ["Modelo","Pressão de entrada de ar (kPa)","θ a 10 kPa (capacidade de campo)",
+     "θ a 1500 kPa (ponto de murcha)","Água disponível (cm³/cm³)"],
+    conv.map(chave=>{
+      const M=MODELOS[chave], r=resultados[chave];
+      const t10=M.f(10,r.p), t1500=M.f(1500,r.p);
+      return [M.nome, fmt(M.entradaAr(r.p),4), fmt(t10,4), fmt(t1500,4), fmt(t10-t1500,4)];
+    }));
+}
+
+
+// Sistema de qualificação dos modelos: posição em cada indicador (1 = melhor)
+// e média das posições. Critérios: R² ajustado (↑), RMSE (↓), MAE (↓) e AIC (↓).
+function tabelaRanking(conv, sel="#t-rank"){
+  if(!conv.length){ $(sel).innerHTML=""; return; }
+  const crit=[
+    ["r2aj",true],["rmse",false],["mae",false],["aic",false]
+  ];
+  const pos={}; conv.forEach(c=>pos[c]=[]);
+  crit.forEach(([k,maior])=>{
+    const ord=conv.slice().sort((a,b)=>{
+      const x=isFinite(resultados[a][k])?resultados[a][k]:resultados[a].r2;
+      const y=isFinite(resultados[b][k])?resultados[b][k]:resultados[b].r2;
+      return maior ? y-x : x-y;
+    });
+    ord.forEach((c,i)=>pos[c].push(i+1));
+  });
+  const media=c=>pos[c].reduce((a,b)=>a+b,0)/pos[c].length;
+  const ordem=conv.slice().sort((a,b)=>media(a)-media(b)||resultados[a].aic-resultados[b].aic);
+  const nota=m=> m<=1.5?"Muito bom":m<=2.25?"Bom":"Regular";
+  montarTabela(sel,
+    ["Colocação","Modelo","R² ajust.","RMSE","MAE","AIC","Média das posições","Qualificação"],
+    ordem.map((c,i)=>[`${i+1}º`, MODELOS[c].nome, ...pos[c].map(p=>`${p}º`),
+      {v:media(c).toFixed(2), cls:i===0?"destaque":""}, nota(media(c))]));
+}
+
+function tabelaSolos(){
+  const atual=conjunto && (conjunto.nome.match(/^(.*) \(Carsel/)||[])[1];
+  montarTabela("#t-solos",
+    ["Classe textural (USDA)","θr (cm³/cm³)","θs (cm³/cm³)","α (1/cm)","n","m = 1 − 1/n"],
+    Object.keys(CARSEL).map(k=>{
+      const [tr,ts,al,n]=CARSEL[k], cls=k===atual?"destaque":"";
+      return [{v:k+(k===atual?" ◄ em uso":""),cls}, tr.toFixed(3), ts.toFixed(2), al.toFixed(3), n.toFixed(2), (1-1/n).toFixed(3)];
+    }));
+}
+
+function tabelaSuccao(){
+  const conv=ORDEM.filter(c=>resultados[c]&&resultados[c].convergiu);
+  if(!conv.length){ $("#t-suc").innerHTML=""; return; }
+  let lo=-Infinity, hi=Infinity;
+  conv.forEach(chave=>{
+    const M=MODELOS[chave], r=resultados[chave];
+    const tr = M.pars[0]==="θr" ? r.p[0] : 0;
+    const ts = M.pars[0]==="θr" ? r.p[1] : r.p[0];
+    lo=Math.max(lo,tr+1e-4); hi=Math.min(hi,ts-1e-4);
+  });
+  const linhas=[];
+  for(let i=0;i<11;i++){
+    const th=hi-(hi-lo)*i/10;
+    linhas.push([th.toFixed(4), ...conv.map(chave=>{
+      const v=MODELOS[chave].inversa(th, resultados[chave].p);
+      return isFinite(v) ? fmt(v,v<10?3:1) : "—";
+    })]);
+  }
+  montarTabela("#t-suc", ["θ (cm³/cm³)",...conv.map(c=>`ψ ${MODELOS[c].curto} (kPa)`)], linhas);
+}
+
+
+/* ==========================================================================
+   PROCESSO DE CÁLCULO — mostra as contas reais feitas com os dados atuais
+   ========================================================================== */
+const g5=v=>!isFinite(v) ? "—" : (v!==0&&(Math.abs(v)<1e-4||Math.abs(v)>=1e6)) ? v.toExponential(4) : String(Number(v.toPrecision(6)));
+
+function jacobianoNum(chave, psi, p){
+  const M=MODELOS[chave], J=[];
+  for(let i=0;i<psi.length;i++){
+    const linha=[];
+    for(let j=0;j<p.length;j++){
+      const h=Math.max(Math.abs(p[j])*1e-6,1e-10), pm=p.slice(), pp=p.slice();
+      pm[j]-=h; pp[j]+=h;
+      linha.push((M.f(psi[i],pp)-M.f(psi[i],pm))/(2*h));
+    }
+    J.push(linha);
+  }
+  return J;
+}
+const tabHtml=(cab,linhas,cls="calc")=>`<div class="rolagem"><table class="${cls}"><thead><tr>${cab.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${linhas.map(l=>`<tr>${l.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+
+function processoCalculo(){
+  const cx=$("#calc-dinamico"); if(!cx) return;
+  const conv=ORDEM.filter(c=>resultados[c]&&resultados[c].convergiu);
+  if(!conjunto||!conv.length){
+    cx.innerHTML=`<div class="aviso">Clique em <b>Ajustar modelos</b> para ver o processo de cálculo com os seus dados.</div>`; return;
+  }
+  const n=conjunto.psi.length, ps=conjunto.psi, th=conjunto.theta, r0=resultados[conv[0]];
+  const eq=l=>`<div class="eqn">${l.map(x=>`<div>${x}</div>`).join("")}</div>`;
+  const rot=c=>`<div class="modrot" style="color:${corDe(c)}">${MODELOS[c].nome}</div>`;
+  const passo=(i,t,corpo)=>`<section class="passo"><h3><span class="num">${i}</span>${t}</h3>${corpo}</section>`;
+  const por=(fn)=>conv.map(c=>rot(c)+fn(c,resultados[c],MODELOS[c])).join("");
+  let h="";
+
+  // 1 — dados
+  h+=passo(1,"Dados de entrada",
+    `<p>Foram informados N = <b>${n}</b> pares (ψ, θ), com ψ entre ${g5(Math.min(...ps))} e ${g5(Math.max(...ps))} kPa e θ entre ${g5(Math.min(...th))} e ${g5(Math.max(...th))} cm³/cm³. Média e soma dos quadrados totais:</p>`+
+    eq([`θ̄ = Σθ / N = ${g5(th.reduce((a,b)=>a+b,0))} / ${n} = <b>${g5(r0.media)}</b> cm³/cm³`,
+        `SQT = Σ(θᵢ − θ̄)² = <b>${g5(r0.sqt)}</b>`]));
+
+  // 2 — tratamento
+  h+=passo(2,"Verificação e tratamento dos dados",
+    conjunto.avisos.length ? `<ul>${conjunto.avisos.map(a=>`<li>${a}</li>`).join("")}</ul>`
+      : `<p>Nenhuma correção foi necessária: ψ &gt; 0, 0 ≤ θ ≤ 1, pontos ordenados por sucção e N ≥ 5.</p>`);
+
+  // 3 — modelos
+  h+=passo(3,"Equações dos modelos",
+    `<p>Cada modelo descreve θ em função de ψ. Os parâmetros são as incógnitas a determinar.</p>`+
+    conv.map(c=>rot(c)+eq([`${MODELOS[c].eq}`,`parâmetros: ${MODELOS[c].pars.join(", ")}`])).join("")+
+    (conv.includes("fredlund_xing")?eq([`C(ψ) = 1 − ln(1 + ψ/ψr) / ln(1 + 10⁶/ψr), com ψr = 10⁶ kPa`]):""));
+
+  // 4 — regressão
+  h+=passo(4,"Ajuste por regressão não linear",
+    `<p>Os parâmetros β são os que minimizam a soma dos quadrados dos resíduos:</p>`+
+    eq([`S(β) = SQR = Σ [ θᵢ − f(ψᵢ; β) ]²`])+
+    `<p>A minimização usa o método de Nelder e Mead, com vários pontos de partida e 3 reinícios de cada um. Vence a partida de menor SQR.</p>`+
+    por((c,r,M)=>{
+      return tabHtml(["Partida","Valores iniciais ("+M.pars.join(", ")+")","SQR após a otimização"],
+        r.partidas.map((q,i)=>[`${i+1}${i===r.idxMelhor?" ◄ vencedora":""}`, q.inicio.map(g5).join(" · "), g5(q.sse)]))+
+        eq([`SQR mínima = <b>${g5(r.sse)}</b>`,
+            ...M.pars.map((nm,i)=>`${nm} = <b>${g5(r.p[i])}</b> ${M.unid[i]==="—"?"":M.unid[i]}`)]);
+    }));
+
+  // 5 — curvas ajustadas e resíduos
+  const eqAjustada=(c,r)=>{
+    const p=r.p;
+    if(c==="gardner") return `θ(ψ) = ${g5(p[0])} + (${g5(p[1])} − ${g5(p[0])})·e<sup>−${g5(p[2])}·ψ</sup>`;
+    if(c==="van_genuchten") return `θ(ψ) = ${g5(p[0])} + (${g5(p[1])} − ${g5(p[0])}) / [1 + (${g5(p[2])}·ψ)<sup>${g5(p[3])}</sup>]<sup>${g5(p[4])}</sup>`;
+    return `θ(ψ) = C(ψ)·${g5(p[0])} / {ln[e + (ψ/${g5(p[1])})<sup>${g5(p[2])}</sup>]}<sup>${g5(p[3])}</sup>`;
+  };
+  const cab5=["n","ψ (kPa)","θ obs."]; conv.forEach(c=>{cab5.push(`θ ${MODELOS[c].curto}`); cab5.push("resíduo");});
+  const lin5=ps.map((x,i)=>[i+1,g5(x),th[i].toFixed(5),...conv.flatMap(c=>[resultados[c].calc[i].toFixed(5),(th[i]-resultados[c].calc[i]).toFixed(5)])]);
+  lin5.push(["","","<b>SQR = Σ resíduo²</b>",...conv.flatMap(c=>["",`<b>${g5(resultados[c].sse)}</b>`])]);
+  h+=passo(5,"Curvas ajustadas e resíduos",
+    `<p>Substituindo os parâmetros ótimos nas equações do passo 3:</p>`+
+    conv.map(c=>rot(c)+eq([eqAjustada(c,resultados[c])])).join("")+
+    `<p>Resíduo = θ observado − θ calculado, em cada ponto:</p>`+tabHtml(cab5,lin5));
+
+  // 6 — erro padrão
+  const info={};
+  conv.forEach(c=>{
+    const r=resultados[c], np=r.nPar, J=jacobianoNum(c,ps,r.p);
+    const A=Array.from({length:np},(_,a)=>Array.from({length:np},(_,b2)=>{let q=0; for(let i=0;i<n;i++) q+=J[i][a]*J[i][b2]; return q;}));
+    info[c]={A, inv:inverter(A), gl:n-np};
+  });
+  h+=passo(6,"Erro padrão dos parâmetros",
+    `<p>O jacobiano J reúne as derivadas de f em relação a cada parâmetro, em cada ponto (calculadas por diferenças centrais). A covariância das estimativas é:</p>`+
+    eq([`Cov(β̂) = s² · (JᵀJ)⁻¹ , com s² = SQR / (N − p)`,`EP(βⱼ) = √( s² · [(JᵀJ)⁻¹]ⱼⱼ )`])+
+    por((c,r,M)=>{
+      const {A,inv,gl}=info[c], s2=r.sse/gl;
+      return `<p>J tem dimensão ${n} × ${r.nPar}. Matriz JᵀJ:</p>`+
+        tabHtml(["",...M.pars],A.map((l,i)=>[`<b>${M.pars[i]}</b>`,...l.map(g5)]))+
+        eq([`s² = ${g5(r.sse)} / (${n} − ${r.nPar}) = ${g5(r.sse)} / ${gl} = <b>${g5(s2)}</b>`,
+            ...M.pars.map((nm,i)=>`EP(${nm}) = √(${g5(s2)} · ${inv?g5(inv[i][i]):"—"}) = <b>${g5(r.erros[i])}</b>`)]);
+    }));
+
+  // 7 — t e p-valor
+  h+=passo(7,"Estatística t e p-valor de cada parâmetro",
+    `<p>Testa-se a hipótese nula de que o parâmetro é igual a zero:</p>`+
+    eq([`t = β̂ / EP(β̂)`,`p = 2 · [ 1 − F<sub>t</sub>(|t| ; N − p) ]`])+
+    por((c,r,M)=>eq(M.pars.map((nm,i)=>
+      `${nm}: t = ${g5(r.p[i])} / ${g5(r.erros[i])} = <b>${g5(r.tstat[i])}</b> → p = <b>${fmtP(r.pPar[i])}</b> (${info[c].gl} graus de liberdade)`))) +
+    `<p>Com p &lt; 0,05 o parâmetro é estatisticamente diferente de zero.</p>`);
+
+  // 8 — indicadores
+  h+=passo(8,"Indicadores de desempenho",
+    eq([`R² = 1 − SQR / SQT`,`R²<sub>aj</sub> = 1 − (1 − R²)·(N − 1)/(N − p − 1)`,`RMSE = √(SQR / N)`,`MAE = Σ|θᵢ − θ̂ᵢ| / N`,
+        `AIC<sub>c</sub> = N·ln(SQR/N) + 2p + 2p(p + 1)/(N − p − 1)`])+
+    por((c,r,M)=>{
+      const np=r.nPar, gl=n-np;
+      const res=th.map((t,i)=>t-r.calc[i]), somaAbs=res.reduce((a,b2)=>a+Math.abs(b2),0);
+      const aj=gl>1 ? 1-(1-r.r2)*(n-1)/(n-np-1) : NaN, corr=2*np*(np+1)/(n-np-1);
+      return eq([
+        `R² = 1 − ${g5(r.sse)} / ${g5(r.sqt)} = <b>${g5(r.r2)}</b>`,
+        `R²<sub>aj</sub> = 1 − (1 − ${g5(r.r2)})·${n-1}/${n-np-1} = <b>${g5(aj)}</b>`,
+        `RMSE = √(${g5(r.sse)} / ${n}) = <b>${g5(r.rmse)}</b> cm³/cm³`,
+        `MAE = ${g5(somaAbs)} / ${n} = <b>${g5(r.mae)}</b> cm³/cm³`,
+        `AIC<sub>c</sub> = ${n}·ln(${g5(r.sse)}/${n}) + ${2*np} + ${g5(corr)} = <b>${g5(r.aic)}</b>`]);
+    }));
+
+  // 9 — qualificação
+  h+=passo(9,"Qualificação dos modelos",
+    `<p>Cada modelo recebe uma posição (1º = melhor) em R²<sub>aj</sub>, RMSE, MAE e AIC<sub>c</sub>. A menor média das posições define a colocação.</p><div class="rolagem"><table id="t-rank2"></table></div>`);
+
+  // 10 — sucção estimada
+  const alvo=parseFloat($("#theta-alvo").value);
+  let c11="";
+  if(!isFinite(alvo)) c11=`<p>Informe um teor de umidade válido na aba “Sucção estimada”.</p>`;
+  else {
+    c11=`<p>Para θ = <b>${alvo}</b> cm³/cm³, inverte-se cada modelo para obter ψ.</p>`+conv.map(c=>{
+      const M=MODELOS[c], p=resultados[c].p, v=M.inversa(alvo,p); let linhas;
+      if(c==="gardner"){
+        const [tr,ts,a]=p, ok=alvo>tr&&alvo<=ts, S=(alvo-tr)/(ts-tr);
+        linhas = ok ? [`s = (θ − θr)/(θs − θr) = (${g5(alvo)} − ${g5(tr)}) / (${g5(ts)} − ${g5(tr)}) = ${g5(S)}`,`ψ = −ln(s)/a = −ln(${g5(S)}) / ${g5(a)} = <b>${g5(v)} kPa</b>`] : [`θ fora do intervalo (θr; θs]: sem solução`];
+      } else if(c==="van_genuchten"){
+        const [tr,ts,al,nn,m]=p, ok=alvo>tr&&alvo<=ts;
+        if(ok){ const se=(alvo-tr)/(ts-tr), t=Math.pow(se,-1/m)-1;
+          linhas=[`Sₑ = (θ − θr)/(θs − θr) = ${g5(se)}`,`t = Sₑ<sup>−1/m</sup> − 1 = ${g5(se)}<sup>${g5(-1/m)}</sup> − 1 = ${g5(t)}`,`ψ = t<sup>1/n</sup> / α = ${g5(t)}<sup>${g5(1/nn)}</sup> / ${g5(al)} = <b>${g5(v)} kPa</b>`];
+        } else linhas=[`θ fora do intervalo (θr; θs]: sem solução`];
+      } else {
+        linhas=[`Sem inversa fechada. Resolve-se f(ψ) = θ − ${g5(alvo)} = 0 por bisseção, em escala logarítmica, entre 10⁻⁴ e 10⁶ kPa.`,
+                isFinite(v)?`ψ = <b>${g5(v)} kPa</b>, e a conferência dá θ(ψ) = ${g5(M.f(v,p))}`:`θ fora da faixa do modelo`];
+      }
+      return rot(c)+eq(linhas);
+    }).join("");
+  }
+  h+=passo(10,"Sucção matricial estimada",c11);
+
+  cx.innerHTML=h;
+  tabelaRanking(conv,"#t-rank2");
+}
+
+function estimarPontual(){
+  const th=parseFloat($("#theta-alvo").value);
+  const conv=ORDEM.filter(c=>resultados[c]&&resultados[c].convergiu);
+  if(!conv.length){ $("#succao-pontual").innerHTML=`<div class="aviso">Ajuste os modelos antes de estimar a sucção.</div>`; return; }
+  if(!isFinite(th)){ $("#succao-pontual").innerHTML=`<div class="aviso">Informe um teor de umidade válido, por exemplo 0,25.</div>`; return; }
+
+  processoCalculo();
+  $("#succao-pontual").innerHTML = `<div class="kpis" style="margin-top:14px">` + conv.map(chave=>{
+    const v=MODELOS[chave].inversa(th, resultados[chave].p);
+    return `<div class="kpi"><div class="r">${MODELOS[chave].curto}</div>
+      <div class="v" style="color:${corDe(chave)}">${isFinite(v)?fmt(v,v<10?3:1):"—"}</div>
+      <div class="s">${isFinite(v)?"kPa":"fora da faixa do modelo"}</div></div>`;
+  }).join("") + `</div>`;
+}
+
+function tabelaDados(){
+  if(!conjunto) return;
+  const conv=ORDEM.filter(c=>resultados[c]&&resultados[c].convergiu);
+  const cab=["n","Sucção ψ (kPa)","θ observado (cm³/cm³)"];
+  conv.forEach(c=>{ cab.push(`θ ${MODELOS[c].curto}`); cab.push(`Resíduo ${MODELOS[c].curto}`); });
+  montarTabela("#t-dados", cab, conjunto.psi.map((x,i)=>{
+    const linha=[i+1, fmt(x,x<10?3:1), conjunto.theta[i].toFixed(4)];
+    conv.forEach(c=>{
+      linha.push(resultados[c].calc[i].toFixed(4));
+      linha.push((conjunto.theta[i]-resultados[c].calc[i]).toFixed(5));
+    });
+    return linha;
+  }));
+}
+
+/* ==========================================================================
+   EXPORTAÇÃO
+   ========================================================================== */
+
+function baixar(nome, conteudo, tipo){
+  const blob = conteudo instanceof Blob ? conteudo : new Blob([conteudo],{type:tipo});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=nome; a.style.display="none";
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); },2000);
+}
+
+function baixarCSV(){
+  if(!Object.keys(resultados).length){ alert("Ajuste os modelos antes de exportar."); return; }
+  const conv=ORDEM.filter(c=>resultados[c]&&resultados[c].convergiu);
+  const L=[];
+  L.push("RELATORIO DE AJUSTE DA CURVA DE RETENCAO DE AGUA NO SOLO");
+  L.push(`Conjunto;${conjunto.nome}`);
+  L.push(`Pontos;${conjunto.psi.length}`);
+  L.push(`Data;${new Date().toLocaleString("pt-BR")}`);
+  L.push("");
+  L.push("PARAMETROS AJUSTADOS");
+  L.push("Modelo;Parametro;Valor;Erro padrao;t;p-valor;Unidade");
+  conv.forEach(c=>MODELOS[c].pars.forEach((nome,i)=>
+    L.push(`${MODELOS[c].nome};${nome};${resultados[c].p[i]};${resultados[c].erros[i]};${resultados[c].tstat[i]};${resultados[c].pPar[i]};${MODELOS[c].unid[i]}`)));
+  L.push("");
+  L.push("INDICADORES ESTATISTICOS");
+  L.push("Modelo;N parametros;R2;R2 ajustado;RMSE;MAE;AIC");
+  conv.forEach(c=>{const r=resultados[c];
+    L.push(`${MODELOS[c].nome};${r.nPar};${r.r2};${r.r2aj};${r.rmse};${r.mae};${r.aic}`)});
+  L.push("");
+  L.push("VALORES OBSERVADOS E CALCULADOS");
+  L.push(["Succao_kPa","theta_observado",...conv.flatMap(c=>
+    [`theta_${MODELOS[c].curto}`,`residuo_${MODELOS[c].curto}`])].join(";"));
+  conjunto.psi.forEach((x,i)=>L.push([x, conjunto.theta[i],
+    ...conv.flatMap(c=>[resultados[c].calc[i], conjunto.theta[i]-resultados[c].calc[i]])].join(";")));
+
+  baixar("resultados_CRAS.csv", "﻿"+L.join("\n").replace(/\./g,","),
+         "text/csv;charset=utf-8");
+}
+
+/* Monta um SVG autônomo do gráfico: estilos embutidos, fundo branco e legenda.
+   Sempre sai com as cores do tema claro, boas para impressão e para o TCC. */
+function montarSVGExport(){
+  const html=document.documentElement, modo=html.dataset.mode;
+  html.dataset.mode="light"; desenhar();
+  const original=$("#gr"), g=original.cloneNode(true);
+  const o=[...original.querySelectorAll("*")], c=[...g.querySelectorAll("*")];
+  const props=["fill","stroke","stroke-width","stroke-dasharray","stroke-linecap","stroke-linejoin",
+               "stroke-opacity","opacity","font-size","font-weight","text-anchor","paint-order"];
+  const remover=[];
+  o.forEach((el,i)=>{
+    if(el.classList.contains("cruz") || el.getAttribute("fill")==="transparent"){ remover.push(c[i]); return; }
+    const cs=getComputedStyle(el);
+    props.forEach(p=>{ const v=cs.getPropertyValue(p); if(v) c[i].style.setProperty(p,v); });
+    c[i].style.setProperty("font-family","Arial, Helvetica, sans-serif");
+    c[i].removeAttribute("class");
+  });
+  remover.forEach(e=>e.remove());
+
+  // Curvas sobrepostas continuam visíveis: a sólida (mais grossa) fica por baixo
+  // e as tracejadas, mais finas, são desenhadas por cima.
+  const curvas=[...g.querySelectorAll("path")].filter(p=>p.style.getPropertyValue("stroke-width")==="2px");
+  const solidas=curvas.filter(p=>!p.getAttribute("stroke-dasharray"));
+  const tracejadas=curvas.filter(p=>p.getAttribute("stroke-dasharray"));
+  const pai=curvas.length ? curvas[0].parentNode : null;
+  const primeiroPonto=g.querySelector("circle");
+  solidas.forEach(p=>{ p.style.setProperty("stroke-width","4"); pai.insertBefore(p, tracejadas[0]||primeiroPonto); });
+  tracejadas.forEach(p=>{ p.style.setProperty("stroke-width","2.2"); });
+
+  // legenda
+  const conv=ORDEM.filter(k=>resultados[k]&&resultados[k].convergiu);
+  const cores={}; conv.forEach(k=>cores[k]=corDe(k));
+  html.dataset.mode=modo; desenhar();
+
+  const TOPO=34, linhaH=22, colunas=2, nItens=conv.length+1;
+  const linhas=Math.ceil(nItens/colunas), H=TOPO+ALT+14+linhas*linhaH+10, W=LARG;
+  const esc=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  let leg="";
+  const item=(i,marca,texto)=>{
+    const x=L.e+(i%colunas)*((W-L.e-L.d+60)/colunas), y=TOPO+ALT+14+Math.floor(i/colunas)*linhaH+12;
+    return marca(x,y)+`<text x="${x+30}" y="${y+4}" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#15202b">${esc(texto)}</text>`;
+  };
+  leg+=item(0,(x,y)=>`<circle cx="${x+10}" cy="${y}" r="4.6" fill="#ffffff" stroke="#15202b" stroke-width="1.6"/>`,"Dados experimentais");
+  conv.forEach((k,j)=>{
+    const M=MODELOS[k], solida=!M.traco;
+    leg+=item(j+1,(x,y)=>`<line x1="${x}" y1="${y}" x2="${x+22}" y2="${y}" stroke="${cores[k]}" stroke-width="${solida?4:2.2}" stroke-linecap="round"${M.traco?` stroke-dasharray="${M.traco}"`:""}/>`,
+                   `${M.nome} — R² = ${resultados[k].r2.toFixed(4)}`);
+  });
+  const miolo=[...g.childNodes].map(n=>new XMLSerializer().serializeToString(n)).join("");
+  const titulo=`<text x="${W/2}" y="20" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#15202b">Curva de retenção de água no solo — ${esc(conjunto.nome)}</text>`;
+  const texto=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`+
+    `<rect width="${W}" height="${H}" fill="#ffffff"/>${titulo}<g transform="translate(0,${TOPO})">${miolo}</g>${leg}</svg>`;
+  return {texto, w:W, h:H};
+}
+
+function baixarSVG(){
+  if(!conjunto){ alert("Carregue um conjunto de dados."); return; }
+  if(!Object.keys(resultados).length){ alert("Ajuste os modelos antes de exportar."); return; }
+  baixar("curva_retencao.svg", montarSVGExport().texto, "image/svg+xml");
+}
+
+function baixarPNG(){
+  if(!conjunto){ alert("Carregue um conjunto de dados."); return; }
+  if(!Object.keys(resultados).length){ alert("Ajuste os modelos antes de exportar."); return; }
+  let e;
+  try{ e=montarSVGExport(); }catch(err){ alert("Não foi possível montar o gráfico: "+err.message); return; }
+  const k=3, img=new Image();
+  img.onload=()=>{
+    try{
+      const cv=document.createElement("canvas"); cv.width=e.w*k; cv.height=e.h*k;
+      const cx=cv.getContext("2d"); cx.fillStyle="#ffffff"; cx.fillRect(0,0,cv.width,cv.height);
+      cx.drawImage(img,0,0,cv.width,cv.height);
+      const final=blob=>{
+        if(blob){ baixar("curva_retencao.png", blob, "image/png"); return; }
+        // plano B: abre a imagem em outra aba para salvar com o botão direito
+        const w=window.open(); if(w){ w.document.write('<title>curva_retencao.png</title><img src="'+cv.toDataURL("image/png")+'" style="max-width:100%">'); }
+        else alert("O navegador bloqueou o download. Use o botão “Gráfico SVG”.");
+      };
+      if(cv.toBlob) cv.toBlob(final,"image/png"); else final(null);
+    }catch(err){
+      alert("Não foi possível gerar o PNG neste navegador ("+err.message+"). Use o botão “Gráfico SVG”.");
+    }
+  };
+  img.onerror=()=>alert("Não foi possível gerar o PNG neste navegador. Use o botão “Gráfico SVG”.");
+  img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(e.texto);
+}
+
+// Linha de estado acima da ferramenta: diz qual conjunto está carregado
+function atualizarEstado(){
+  const el=$("#estado-exemplo");
+  if(!el||!conjunto) return;
+  const sintetico=/Carsel e Parrish/.test(conjunto.nome);
+  el.textContent = `Conjunto atual: ${conjunto.nome}, ${conjunto.psi.length} pontos` +
+    (sintetico ? ". Para usar os seus dados, informe-os no painel 1." : ".");
+}
+
+// Tema inicial segue a preferência do sistema
+try{
+  if(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches){
+    document.documentElement.dataset.mode="dark";
+    document.querySelector(".modo").textContent="Modo claro";
+  }
+}catch(e){}
+
+iniciar();
+executar();      // a página já abre com o exemplo ajustado
+
+</script>
+</body>
+</html>
